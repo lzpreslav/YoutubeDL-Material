@@ -17,8 +17,8 @@
     "i18n-source": "ng extract-i18n --output-path=src/assets/i18n --out-file=messages.en.xlf"
   },
   "engines": {
-    "node": "12.3.1",
-    "npm": "6.10.3"
+    "node": "22",
+    "npm": "10"
   },
   "private": true,
   "dependencies": {
@@ -38,7 +38,7 @@
     "@ngneat/content-loader": "^7.0.0",
     "@videogular/ngx-videogular": "^6.0.0",
     "core-js": "^2.4.1",
-    "crypto-js": "^4.1.1",
+    "crypto-js": "^4.2.0",
     "file-saver": "^2.0.2",
     "filesize": "^10.0.7",
     "fs-extra": "^10.0.0",
@@ -65,9 +65,9 @@
     "@typescript-eslint/eslint-plugin": "^4.29.0",
     "@typescript-eslint/parser": "^4.29.0",
     "ajv": "^7.2.4",
-    "codelyzer": "^6.0.0",
+    "codelyzer": "^6.0.2",
     "eslint": "^7.32.0",
-    "jasmine-core": "~3.6.0",
+    "jasmine-core": "^3.8.0",
     "jasmine-spec-reporter": "~5.0.0",
     "karma": "~6.4.2",
     "karma-chrome-launcher": "~3.1.0",
@@ -76,14 +76,14 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "^1.5.0",
     "openapi-typescript-codegen": "^0.23.0",
-    "protractor": "~7.0.0",
+    "protractor": "^7.0.0",
     "ts-node": "~3.0.4",
     "tslint": "~6.1.0"
   },
   "overrides": {
     "ngx-avatars": {
-      "@angular/common": "15.0.1",
-      "@angular/core": "15.0.1"
+      "@angular/common": "15.2.10",
+      "@angular/core": "15.2.10"
     }
-}
+  }
 }
