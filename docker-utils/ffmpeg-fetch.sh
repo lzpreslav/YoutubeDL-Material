@@ -9,12 +9,6 @@ case $(uname -m) in
     ARCH=amd64;;
   aarch64)
     ARCH=arm64;;
-  armhf)
-    ARCH=armhf;;
-  armv7)
-    ARCH=armel;;
-  armv7l)
-    ARCH=armel;;
   *)
     echo "Unsupported architecture: $(uname -m)"
     exit 1
