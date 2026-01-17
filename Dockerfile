@@ -59,17 +59,6 @@ RUN npm config set strict-ssl false && \
     npm install --prod && \
     ls -al
 
-#FROM base as python
-# armv7 need build from source
-#WORKDIR /app
-#COPY docker-utils/GetTwitchDownloader.py .
-#RUN apt update && \
-#    apt install -y --no-install-recommends python3-minimal python-is-python3 python3-pip python3-dev build-essential libffi-dev && \
-#    apt clean && \
-#    rm -rf /var/lib/apt/lists/*
-#RUN pip install PyGithub requests
-#RUN python GetTwitchDownloader.py
-
 # Final image
 FROM base
 RUN npm install -g pm2 && \

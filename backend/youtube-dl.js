@@ -16,10 +16,6 @@ exports.youtubedl_forks = {
         'download_url': 'https://github.com/ytdl-org/youtube-dl/releases/latest/download/youtube-dl',
         'tags_url': 'https://api.github.com/repos/ytdl-org/youtube-dl/tags'
     },
-    'youtube-dlc': {
-        'download_url': 'https://github.com/blackjack4494/yt-dlc/releases/latest/download/youtube-dlc',
-        'tags_url': 'https://api.github.com/repos/blackjack4494/yt-dlc/tags'
-    },
     'yt-dlp': {
         'download_url': 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp',
         'tags_url': 'https://api.github.com/repos/yt-dlp/yt-dlp/tags'
@@ -128,7 +124,7 @@ async function downloadLatestYoutubeDLBinaryGeneric(youtubedl_fork, new_version,
         logger.error(e);
         return;
     }
-} 
+}
 
 exports.getLatestUpdateVersion = async (youtubedl_fork) => {
     const tags_url = exports.youtubedl_forks[youtubedl_fork]['tags_url'];

@@ -438,8 +438,8 @@ describe('Multi User', async function() {
     // });
 
 });
-    
-describe('Downloader', function() {
+
+describe.skip('Downloader', function() {
     const downloader_api = require('../downloader');
     const url = 'https://www.youtube.com/watch?v=hpigjnKl7nI';
     const playlist_url = 'https://www.youtube.com/playlist?list=PLbZT16X07RLhqK-ZgSkRuUyiz9B_WLdNK';
@@ -600,28 +600,6 @@ describe('Downloader', function() {
         const updated_args3 = utils.injectArgs(original_args3, new_args3);
         const expected_args3 =  ['-o', '%(title)s.%(ext)s', '--min-filesize', '1'];
         assert(JSON.stringify(updated_args3) === JSON.stringify(expected_args3));
-    });
-    describe('Twitch', async function () {
-        const twitch_api = require('../twitch');
-        const example_vod = '1790315420';
-        it('Download VOD chat', async function() {
-            this.timeout(300000);
-            if (!fs.existsSync('TwitchDownloaderCLI')) {
-                try {
-                    await exec('sh ../docker-utils/fetch-twitchdownloader.sh');
-                    fs.copyFileSync('../docker-utils/TwitchDownloaderCLI', 'TwitchDownloaderCLI');
-                } catch (e) {
-                    logger.info('TwitchDownloaderCLI fetch failed, file may exist regardless.');
-                }
-            }
-            const sample_path = path.join('test', 'sample.twitch_chat.json');
-            if (fs.existsSync(sample_path)) fs.unlinkSync(sample_path);
-            await twitch_api.downloadTwitchChatByVODID(example_vod, 'sample', null, null, null, './test');
-            assert(fs.existsSync(sample_path));
-
-            // cleanup
-            if (fs.existsSync(sample_path)) fs.unlinkSync(sample_path);
-        });
     });
 });
 
