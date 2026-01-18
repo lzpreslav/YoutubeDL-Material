@@ -44,6 +44,7 @@ Thumbs.db
 
 node_modules/*
 backend/node_modules/*
+backend/test/sample_mp4.mp4
 YoutubeDL-Material/node_modules/*
 backend/subscriptions/archives/*
 backend/subscriptions/playlists/*

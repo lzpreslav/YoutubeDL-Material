@@ -6,6 +6,7 @@
 *.md
 appdata
 audio
+backend/test/sample_mp4.mp4
 db
 docker-compose.yml
 Dockerfile
