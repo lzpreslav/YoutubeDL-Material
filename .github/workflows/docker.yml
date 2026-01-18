@@ -58,8 +58,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ env.IMAGE_NAME }}-{{ date 'YYYY-MM-DD' }}
-            type=raw,value=${{ env.IMAGE_NAME }}
+            type=raw,value={{ date 'YYYY-MM-DD' }}
+            type=raw,value=latest
             type=sha,prefix=sha-,format=short
 
       - name: Login to GitHub Container Registry
