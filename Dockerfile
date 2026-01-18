@@ -3,7 +3,6 @@ FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS utils
 ARG DEBIAN_FRONTEND=noninteractive
 # Use script due to local build compatibility
 RUN --mount=type=bind,source=docker-utils,target=/scripts \
-    sh /scripts/ffmpeg-fetch.sh && \
     sh /scripts/fetch-twitchdownloader.sh && \
     sh /scripts/deno-fetch.sh
 
@@ -25,6 +24,7 @@ RUN groupadd -g $GID $USER && \
                 atomicparsley \
                 ca-certificates \
                 curl \
+                ffmpeg \
                 gosu \
                 libatomic1 \
                 libicu74 \
@@ -74,8 +74,6 @@ FROM base
 WORKDIR /app
 
 COPY --from=utils \
-     /usr/local/bin/ffmpeg \
-     /usr/local/bin/ffprobe \
      /usr/local/bin/TwitchDownloaderCLI \
      /usr/local/bin/deno \
      /usr/local/bin/
