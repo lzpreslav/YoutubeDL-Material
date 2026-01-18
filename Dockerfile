@@ -39,7 +39,7 @@ RUN groupadd -g $GID $USER && \
     rm -rf /var/lib/apt/lists/*
 
 # Install NodeJS
-ENV NODE_VERSION=16.14.2 \
+ENV NODE_VERSION=24.13.0 \
     NVM_VERSION=0.40.3 \
     NVM_DIR=/usr/local/nvm
 ENV PATH="/usr/local/nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
