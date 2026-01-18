@@ -683,43 +683,6 @@ paths:
                 $ref: '#/components/schemas/SuccessObject'
       security:
         - Auth query parameter: []
-  /api/updaterStatus:
-    get:
-      tags:
-        - updating
-      summary: Get updater status
-      description: Gets the status of an update that is in progress
-      operationId: get-api-updaterStatus
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdaterStatus'
-      security:
-        - Auth query parameter: []
-  /api/updateServer:
-    post:
-      tags:
-        - updating
-      summary: Update server
-      description: 'Updates the server. If no tag is provided, the latest version will be used.'
-      operationId: post-api-updateServer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateServerRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessObject'
-      security:
-        - Auth query parameter: []
   /api/isPinSet:
     post:
       tags:
@@ -2279,25 +2242,6 @@ components:
         cookies:
           type: string
           format: binary
-    UpdaterStatus:
-      required:
-        - details
-        - updating
-      type: object
-      properties:
-        updating:
-          type: boolean
-        details:
-          type: string
-        error:
-          type: boolean
-    UpdateServerRequest:
-      required:
-        - tag
-      type: object
-      properties:
-        tag:
-          type: string
     DBInfoResponse:
       type: object
       properties:

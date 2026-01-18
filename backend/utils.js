@@ -386,14 +386,6 @@ exports.fetchFile = async (url, path, file_label) => {
     });
 }
 
-exports.restartServer = async (is_update = false) => {
-    logger.info(`${is_update ? 'Update complete! ' : ''}Restarting server...`);
-
-    // the following line restarts the server through pm2
-    fs.writeFileSync(`restart${is_update ? '_update' : '_general'}.json`, 'internal use only');
-    process.exit(1);
-}
-
 // adds or replaces args according to the following rules:
 //  - if it already exists and has value, then replace both arg and value
 //  - if already exists and doesn't have value, ignore

@@ -119,8 +119,6 @@ export type { UpdateConcurrentStreamRequest } from './models/UpdateConcurrentStr
 export type { UpdateConcurrentStreamResponse } from './models/UpdateConcurrentStreamResponse';
 export type { UpdateFileRequest } from './models/UpdateFileRequest';
 export type { UpdatePlaylistRequest } from './models/UpdatePlaylistRequest';
-export type { UpdaterStatus } from './models/UpdaterStatus';
-export type { UpdateServerRequest } from './models/UpdateServerRequest';
 export type { UpdateTaskDataRequest } from './models/UpdateTaskDataRequest';
 export type { UpdateTaskOptionsRequest } from './models/UpdateTaskOptionsRequest';
 export type { UpdateTaskScheduleRequest } from './models/UpdateTaskScheduleRequest';
