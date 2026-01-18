@@ -1,17 +1,16 @@
 ## Fectch binary dependencies
-FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS utils
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS utils
 ARG DEBIAN_FRONTEND=noninteractive
 # Use script due to local build compatibility
 RUN --mount=type=bind,source=docker-utils,target=/scripts \
-    sh /scripts/ffmpeg-fetch.sh && \
     sh /scripts/fetch-twitchdownloader.sh && \
     sh /scripts/deno-fetch.sh
 
 
-FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS base
+FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS base
 ARG DEBIAN_FRONTEND=noninteractive
-ENV UID=1000
-ENV GID=1000
+ENV UID=2000
+ENV GID=2000
 ENV USER=youtube
 ENV NO_UPDATE_NOTIFIER=true
 ENV ALLOW_CONFIG_MUTATIONS=true
@@ -25,21 +24,22 @@ RUN groupadd -g $GID $USER && \
                 atomicparsley \
                 ca-certificates \
                 curl \
+                ffmpeg \
                 gosu \
                 libatomic1 \
-                libicu70 \
+                libicu74 \
                 python-is-python3 \
                 python3-minimal \
                 python3-pip \
                 tzdata && \
-    pip install \
+    pip install --break-system-packages \
                 pycryptodomex \
                 yt-dlp-ejs && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Install NodeJS
-ENV NODE_VERSION=16.14.2 \
+ENV NODE_VERSION=24.13.0 \
     NVM_VERSION=0.40.3 \
     NVM_DIR=/usr/local/nvm
 ENV PATH="/usr/local/nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
@@ -74,8 +74,6 @@ FROM base
 WORKDIR /app
 
 COPY --from=utils \
-     /usr/local/bin/ffmpeg \
-     /usr/local/bin/ffprobe \
      /usr/local/bin/TwitchDownloaderCLI \
      /usr/local/bin/deno \
      /usr/local/bin/
