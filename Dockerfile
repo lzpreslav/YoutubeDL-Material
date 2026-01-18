@@ -40,15 +40,12 @@ RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
 # Build frontend
 ARG BUILDPLATFORM
 FROM --platform=${BUILDPLATFORM} node:16 AS frontend
-RUN npm install -g @angular/cli
 WORKDIR /build
 COPY [ "package.json", "package-lock.json", "angular.json", "tsconfig.json", "/build/" ]
 COPY [ "src/", "/build/src/" ]
 RUN npm install && \
     npm run build && \
-    ls -al /build/backend/public
-RUN npm uninstall -g @angular/cli
-RUN rm -rf node_modules
+    rm -rf node_modules
 
 
 # Install backend deps

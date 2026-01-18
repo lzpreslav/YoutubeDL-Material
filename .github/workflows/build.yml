@@ -24,7 +24,6 @@ jobs:
           npm install
           cd backend
           npm install
-          sudo npm install -g @angular/cli
       - name: Set hash
         id: vars
         run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
