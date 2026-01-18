@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test --exit -s 1000",
-    "start": "pm2-runtime --raw pm2.config.js",
+    "start": "node app.js",
     "debug": "set YTDL_MODE=debug && node app.js"
   },
   "repository": {

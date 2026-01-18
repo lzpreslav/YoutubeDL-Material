@@ -87,8 +87,6 @@ To deploy, simply clone the repository, and go into the `youtubedl-material` dir
 
 Once you do that, you're almost up and running. All you need to do is edit the configuration in `youtubedl-material/appdata`, go back into the `youtubedl-material` directory, and type `npm run build`. This will build the app, and put the output files in the `youtubedl-material/backend/public` folder.
 
-Lastly, type `npm -g install pm2` to install pm2 globally.
-
 The frontend is now complete. The backend is much easier. Just go into the `backend` folder, and type `npm start`.
 
 Finally, if you want your instance to be available from outside your network, you can set up a [reverse proxy](https://github.com/Tzahi12345/YoutubeDL-Material/wiki/Reverse-Proxy-Setup).

@@ -18,7 +18,6 @@ ENV UID=1000
 ENV GID=1000
 ENV USER=youtube
 ENV NO_UPDATE_NOTIFIER=true
-ENV PM2_HOME=/app/pm2
 ENV ALLOW_CONFIG_MUTATIONS=true
 ENV npm_config_cache=/app/.npm
 
@@ -62,8 +61,7 @@ RUN npm config set strict-ssl false && \
 
 # Final image
 FROM base
-RUN npm install -g pm2 && \
-    apt update && \
+RUN apt update && \
     apt install -y --no-install-recommends gosu python3-minimal python-is-python3 python3-pip atomicparsley build-essential && \
     pip install pycryptodomex && \
     apt remove -y --purge build-essential && \
@@ -85,4 +83,4 @@ RUN chmod +x /app/fix-scripts/*.sh
 
 EXPOSE 17442
 ENTRYPOINT [ "/app/entrypoint.sh" ]
-CMD [ "npm","start" ]
+CMD [ "node", "app.js" ]
