@@ -285,14 +285,6 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  restartServer(): void {
-    this.postsService.restartServer().subscribe(() => {
-      this.postsService.openSnackBar($localize`Restarting!`);
-    }, () => {
-      this.postsService.openSnackBar($localize`Failed to restart the server.`);
-    });
-  }
-
   getDBInfo(): void {
     this.postsService.getDBInfo().subscribe(res => {
       this.db_info = res;

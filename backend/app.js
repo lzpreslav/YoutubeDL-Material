@@ -105,26 +105,10 @@ let allowSubscriptions = null;
 
 // other needed values
 let url_domain = null;
-let updaterStatus = null;
 
 const concurrentStreams = {};
 
 if (debugMode) logger.info('YTDL-Material in debug mode!');
-
-// check if just updated
-const just_updated = fs.existsSync('restart_update.json');
-if (just_updated) {
-    updaterStatus = {
-        updating: false,
-        details: 'Update complete! You are now on ' + CONSTS['CURRENT_VERSION']
-    }
-    fs.unlinkSync('restart_update.json');
-}
-
-if (fs.existsSync('restart_general.json')) fs.unlinkSync('restart_general.json');
-
-// updates & starts youtubedl (commented out b/c of repo takedown)
-// startYoutubeDL();
 
 var validDownloadingAgents = [
     'aria2c',
@@ -262,190 +246,6 @@ async function startServer() {
     app.listen(backendPort,function(){
         logger.info(`YoutubeDL-Material ${CONSTS['CURRENT_VERSION']} started on PORT ${backendPort}`);
     });
-}
-
-async function updateServer(tag) {
-    // no tag provided means update to the latest version
-    if (!tag) {
-        const new_version_available = await isNewVersionAvailable();
-        if (!new_version_available) {
-            logger.error('ERROR: Failed to update - no update is available.');
-            return false;
-        }
-    }
-
-    return new Promise(async resolve => {
-        // backup current dir
-        updaterStatus = {
-            updating: true,
-            'details': 'Backing up key server files...'
-        }
-        let backup_succeeded = await backupServerLite();
-        if (!backup_succeeded) {
-            resolve(false);
-            return false;
-        }
-
-        updaterStatus = {
-            updating: true,
-            'details': 'Downloading requested release...'
-        }
-        // grab new package.json and public folder
-        await downloadReleaseFiles(tag);
-
-        updaterStatus = {
-            updating: true,
-            'details': 'Installing new dependencies...'
-        }
-        // run npm install
-        await installDependencies();
-
-        updaterStatus = {
-            updating: true,
-            'details': 'Update complete! Restarting server...'
-        }
-        utils.restartServer(true);
-    }, err => {
-        logger.error(err);
-        updaterStatus = {
-            updating: false,
-            error: true,
-            'details': 'Update failed. Check error logs for more info.'
-        }
-    });
-}
-
-async function downloadReleaseFiles(tag) {
-    tag = tag ? tag : await getLatestVersion();
-    return new Promise(async resolve => {
-        logger.info('Downloading new files...')
-
-        // downloads the latest release zip file
-        await downloadReleaseZip(tag);
-
-        // deletes contents of public dir
-        fs.removeSync(path.join(__dirname, 'public'));
-        fs.mkdirSync(path.join(__dirname, 'public'));
-
-        let replace_ignore_list = ['youtubedl-material/appdata/default.json',
-                                    'youtubedl-material/appdata/db.json',
-                                    'youtubedl-material/appdata/users.json',
-                                    'youtubedl-material/appdata/*']
-        logger.info(`Installing update ${tag}...`)
-
-        // downloads new package.json and adds new public dir files from the downloaded zip
-        fs.createReadStream(path.join(__dirname, `youtubedl-material-release-${tag}.zip`)).pipe(unzipper.Parse())
-        .on('entry', function (entry) {
-            var fileName = entry.path;
-            var is_dir = fileName.substring(fileName.length-1, fileName.length) === '/'
-            if (!is_dir && fileName.includes('youtubedl-material/public/')) {
-                // get public folder files
-                const actualFileName = fileName.replace('youtubedl-material/public/', '');
-                if (actualFileName.length !== 0 && actualFileName.substring(actualFileName.length-1, actualFileName.length) !== '/') {
-                    fs.ensureDirSync(path.join(__dirname, 'public', path.dirname(actualFileName)));
-                    entry.pipe(fs.createWriteStream(path.join(__dirname, 'public', actualFileName)));
-                } else {
-                    entry.autodrain();
-                }
-            } else if (!is_dir && !replace_ignore_list.includes(fileName)) {
-                // get package.json
-                const actualFileName = fileName.replace('youtubedl-material/', '');
-                logger.verbose('Downloading file ' + actualFileName);
-                entry.pipe(fs.createWriteStream(path.join(__dirname, actualFileName)));
-            } else {
-                entry.autodrain();
-            }
-        })
-        .on('close', function () {
-            resolve(true);
-        });
-    });
-}
-
-async function downloadReleaseZip(tag) {
-    return new Promise(async resolve => {
-        // get name of zip file, which depends on the version
-        const latest_release_link = `https://github.com/Tzahi12345/YoutubeDL-Material/releases/download/${tag}/`;
-        const tag_without_v = tag.substring(1, tag.length);
-        const zip_file_name = `youtubedl-material-${tag_without_v}.zip`
-        const latest_zip_link = latest_release_link + zip_file_name;
-        let output_path = path.join(__dirname, `youtubedl-material-release-${tag}.zip`);
-
-        // download zip from release
-        await utils.fetchFile(latest_zip_link, output_path, 'update ' + tag);
-        resolve(true);
-    });
-
-}
-
-async function installDependencies() {
-    var child_process = require('child_process');
-    var exec = promisify(child_process.exec);
-
-    await exec('npm install',{stdio:[0,1,2]});
-    return true;
-}
-
-async function backupServerLite() {
-    await fs.ensureDir(path.join(__dirname, 'appdata', 'backups'));
-    let output_path = path.join('appdata', 'backups', `backup-${Date.now()}.zip`);
-    logger.info(`Backing up your non-video/audio files to ${output_path}. This may take up to a few seconds/minutes.`);
-    let output = fs.createWriteStream(path.join(__dirname, output_path));
-
-    await new Promise(resolve => {
-        var archive = archiver('zip', {
-            gzip: true,
-            zlib: { level: 9 } // Sets the compression level.
-        });
-
-        archive.on('error', function(err) {
-            logger.error(err);
-            resolve(false);
-        });
-
-        // pipe archive data to the output file
-        archive.pipe(output);
-
-        // ignore certain directories (ones with video or audio files)
-        const files_to_ignore = [path.join(config_api.getConfigItem('ytdl_subscriptions_base_path'), '**'),
-                                path.join(config_api.getConfigItem('ytdl_audio_folder_path'), '**'),
-                                path.join(config_api.getConfigItem('ytdl_video_folder_path'), '**'),
-                                'appdata/backups/backup-*.zip'];
-
-        archive.glob('**/*', {
-            ignore: files_to_ignore
-        });
-
-        resolve(archive.finalize());
-    });
-
-    // wait a tiny bit for the zip to reload in fs
-    await utils.wait(100);
-    return true;
-}
-
-async function isNewVersionAvailable() {
-    // gets tag of the latest version of youtubedl-material, compare to current version
-    const latest_tag = await getLatestVersion();
-    const current_tag = CONSTS['CURRENT_VERSION'];
-    if (latest_tag > current_tag) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-async function getLatestVersion() {
-    const res = await fetch('https://api.github.com/repos/tzahi12345/youtubedl-material/releases/latest', {method: 'Get'});
-    const json = await res.json();
-
-    if (json['message']) {
-        // means there's an error in getting latest version
-        logger.error(`ERROR: Received the following message from GitHub's API:`);
-        logger.error(json['message']);
-        if (json['documentation_url']) logger.error(`Associated URL: ${json['documentation_url']}`)
-    }
-    return json['tag_name'];
 }
 
 async function killAllDownloads() {
@@ -677,12 +477,6 @@ app.post('/api/setConfig', optionalJwt, function(req, res) {
 
 app.get('/api/versionInfo', (req, res) => {
     res.send({version_info: version_info});
-});
-
-app.post('/api/restartServer', optionalJwt, (req, res) => {
-    // delayed by a little bit so that the client gets a response
-    setTimeout(() => {utils.restartServer()}, 100);
-    res.send({success: true});
 });
 
 app.get('/api/getDBInfo', optionalJwt, async (req, res) => {
@@ -1523,30 +1317,6 @@ app.post('/api/uploadCookies', upload_multer.single('cookies'), async (req, res)
     } else {
         res.sendStatus(500);
     }
-
-});
-
-// Updater API calls
-
-app.get('/api/updaterStatus', optionalJwt, async (req, res) => {
-    let status = updaterStatus;
-
-    if (status) {
-        res.send(updaterStatus);
-    } else {
-        res.sendStatus(404);
-    }
-
-});
-
-app.post('/api/updateServer', optionalJwt, async (req, res) => {
-    let tag = req.body.tag;
-
-    updateServer(tag);
-
-    res.send({
-        success: true
-    });
 
 });
 

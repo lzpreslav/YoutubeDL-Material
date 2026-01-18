@@ -1,88 +1,87 @@
-# Fetching our utils
-FROM ubuntu:22.04 AS utils
-ENV DEBIAN_FRONTEND=noninteractive
-# Use script due local build compability
-COPY docker-utils/*.sh .
-RUN chmod +x *.sh
-RUN sh ./ffmpeg-fetch.sh
-RUN sh ./fetch-twitchdownloader.sh
-RUN sh ./deno-fetch.sh
+## Fectch binary dependencies
+FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS utils
+ARG DEBIAN_FRONTEND=noninteractive
+# Use script due to local build compatibility
+RUN --mount=type=bind,source=docker-utils,target=/scripts \
+    sh /scripts/ffmpeg-fetch.sh && \
+    sh /scripts/fetch-twitchdownloader.sh && \
+    sh /scripts/deno-fetch.sh
 
 
-# Create our Ubuntu 22.04 with node 16.14.2 (that specific version is required as per: https://stackoverflow.com/a/72855258/8088021)
-# Go to 20.04
-FROM ubuntu:22.04 AS base
-ARG TARGETPLATFORM
+FROM --platform=$BUILDPLATFORM ubuntu:22.04 AS base
 ARG DEBIAN_FRONTEND=noninteractive
 ENV UID=1000
 ENV GID=1000
 ENV USER=youtube
 ENV NO_UPDATE_NOTIFIER=true
-ENV PM2_HOME=/app/pm2
 ENV ALLOW_CONFIG_MUTATIONS=true
-ENV npm_config_cache=/app/.npm
+ENV npm_config_cache=/root/.npm
 
-# Use NVM to get specific node version
-ENV NODE_VERSION=16.14.2
-RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER && \
+# Install package dependencies
+RUN groupadd -g $GID $USER && \
+    useradd --system -m -g $USER --uid $UID $USER && \
     apt update && \
-    apt install -y --no-install-recommends curl ca-certificates tzdata libicu70 libatomic1 && \
+    apt install -y --no-install-recommends \
+                atomicparsley \
+                ca-certificates \
+                curl \
+                gosu \
+                libatomic1 \
+                libicu70 \
+                python-is-python3 \
+                python3-minimal \
+                python3-pip \
+                tzdata && \
+    pip install \
+                pycryptodomex \
+                yt-dlp-ejs && \
     apt clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /usr/local/nvm
+# Install NodeJS
+ENV NODE_VERSION=16.14.2 \
+    NVM_VERSION=0.40.3 \
+    NVM_DIR=/usr/local/nvm
 ENV PATH="/usr/local/nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
-ENV NVM_DIR=/usr/local/nvm
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
-RUN . "$NVM_DIR/nvm.sh" && nvm use v${NODE_VERSION}
-RUN . "$NVM_DIR/nvm.sh" && nvm alias default v${NODE_VERSION}
 
-# Build frontend
-ARG BUILDPLATFORM
-FROM --platform=${BUILDPLATFORM} node:16 as frontend
-RUN npm install -g @angular/cli
+RUN mkdir -p "$NVM_DIR" && \
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/install.sh | bash && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm install ${NODE_VERSION} && \
+    nvm use v${NODE_VERSION} && \
+    nvm alias default v${NODE_VERSION}
+
+
+FROM base AS frontend
 WORKDIR /build
-COPY [ "package.json", "package-lock.json", "angular.json", "tsconfig.json", "/build/" ]
-COPY [ "src/", "/build/src/" ]
-RUN npm install && \
+COPY package.json package-lock.json angular.json tsconfig.json ./
+COPY src/ ./src/
+RUN --mount=type=cache,target=/root/.npm \
+    npm install && \
     npm run build && \
-    ls -al /build/backend/public
-RUN npm uninstall -g @angular/cli
-RUN rm -rf node_modules
+    rm -rf node_modules
 
 
-# Install backend deps
-FROM base as backend
+FROM base AS backend
 WORKDIR /app
-COPY [ "backend/","/app/" ]
-RUN npm config set strict-ssl false && \
-    npm install --prod && \
-    ls -al
+COPY backend/ ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --only=production
+
 
 # Final image
 FROM base
-RUN npm install -g pm2 && \
-    apt update && \
-    apt install -y --no-install-recommends gosu python3-minimal python-is-python3 python3-pip atomicparsley build-essential && \
-    pip install pycryptodomex && \
-    apt remove -y --purge build-essential && \
-    apt autoremove -y --purge && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-# User 1000 already exist from base image
-COPY --chown=$UID:$GID --from=utils [ "/usr/local/bin/ffmpeg", "/usr/local/bin/ffmpeg" ]
-COPY --chown=$UID:$GID --from=utils [ "/usr/local/bin/ffprobe", "/usr/local/bin/ffprobe" ]
-COPY --chown=$UID:$GID --from=utils [ "/usr/local/bin/TwitchDownloaderCLI", "/usr/local/bin/TwitchDownloaderCLI"]
-COPY --chown=$UID:$GID --from=utils [ "/usr/local/bin/deno", "/usr/local/bin/deno" ]
-COPY --chown=$UID:$GID --from=backend ["/app/","/app/"]
-COPY --chown=$UID:$GID --from=frontend [ "/build/backend/public/", "/app/public/" ]
-#COPY --chown=$UID:$GID --from=python ["/app/TwitchDownloaderCLI","/usr/local/bin/TwitchDownloaderCLI"]
-RUN chmod +x /app/fix-scripts/*.sh
-# Add some persistence data
-#VOLUME ["/app/appdata"]
+
+COPY --from=utils \
+     /usr/local/bin/ffmpeg \
+     /usr/local/bin/ffprobe \
+     /usr/local/bin/TwitchDownloaderCLI \
+     /usr/local/bin/deno \
+     /usr/local/bin/
+COPY --from=backend /app/ /app/
+COPY --from=frontend /build/backend/public/ /app/public/
 
 EXPOSE 17442
 ENTRYPOINT [ "/app/entrypoint.sh" ]
-CMD [ "npm","start" ]
+CMD [ "node", "app.js" ]

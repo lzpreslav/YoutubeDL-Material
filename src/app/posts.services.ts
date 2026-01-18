@@ -51,11 +51,9 @@ import {
     SubscribeResponse,
     SubscriptionRequestData,
     SuccessObject,
-    UpdaterStatus,
     UnsubscribeRequest,
     UnsubscribeResponse,
     UpdatePlaylistRequest,
-    UpdateServerRequest,
     UpdateUserRequest,
     UserPermission,
     YesNo,
@@ -336,10 +334,6 @@ export class PostsService implements CanActivate {
 
     killAllDownloads() {
         return this.http.post<SuccessObject>(this.path + 'killAllDownloads', {}, this.httpOptions);
-    }
-
-    restartServer() {
-        return this.http.post<SuccessObject>(this.path + 'restartServer', {}, this.httpOptions);
     }
 
     getConfig() {
@@ -694,15 +688,6 @@ export class PostsService implements CanActivate {
 
     getVersionInfo() {
         return this.http.get<VersionInfoResponse>(this.path + 'versionInfo', this.httpOptions);
-    }
-
-    updateServer(tag: string) {
-        const body: UpdateServerRequest = {tag: tag};
-        return this.http.post<SuccessObject>(this.path + 'updateServer', body, this.httpOptions);
-    }
-
-    getUpdaterStatus() {
-        return this.http.get<UpdaterStatus>(this.path + 'updaterStatus', this.httpOptions);
     }
 
     // gets tag of the latest version of youtubedl-material
