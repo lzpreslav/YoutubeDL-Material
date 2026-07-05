@@ -66,7 +66,7 @@ FROM base AS backend
 WORKDIR /app
 COPY backend/ ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --only=production
+    npm ci --omit=dev
 
 
 # Final image
@@ -79,6 +79,16 @@ COPY --from=utils \
      /usr/local/bin/
 COPY --from=backend /app/ /app/
 COPY --from=frontend /build/backend/public/ /app/public/
+
+# Drop npm/npx/corepack from the runtime image. Only `node app.js` runs here, and
+# npm's bundled dependencies (tar, sigstore, glob, brace-expansion, ...) account
+# for a large share of the image's reported CVEs.
+RUN NODE_DIR="/usr/local/nvm/versions/node/v${NODE_VERSION}" && \
+    rm -rf "${NODE_DIR}/lib/node_modules/npm" \
+           "${NODE_DIR}/lib/node_modules/corepack" \
+           "${NODE_DIR}/bin/npm" \
+           "${NODE_DIR}/bin/npx" \
+           "${NODE_DIR}/bin/corepack"
 
 EXPOSE 17442
 ENTRYPOINT [ "/app/entrypoint.sh" ]

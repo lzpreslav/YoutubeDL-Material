@@ -142,29 +142,9 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_gotify_app_token',
         'path': 'YoutubeDLMaterial.API.gotify_app_token'
     },
-    'ytdl_use_telegram_API': {
-        'key': 'ytdl_use_telegram_API',
-        'path': 'YoutubeDLMaterial.API.use_telegram_API'
-    },
-    'ytdl_telegram_bot_token': {
-        'key': 'ytdl_telegram_bot_token',
-        'path': 'YoutubeDLMaterial.API.telegram_bot_token'
-    },
-    'ytdl_telegram_chat_id': {
-        'key': 'ytdl_telegram_chat_id',
-        'path': 'YoutubeDLMaterial.API.telegram_chat_id'
-    },
-    'ytdl_telegram_webhook_proxy': {
-        'key': 'ytdl_telegram_webhook_proxy',
-        'path': 'YoutubeDLMaterial.API.telegram_webhook_proxy'
-    },
     'ytdl_webhook_url': {
         'key': 'ytdl_webhook_url',
         'path': 'YoutubeDLMaterial.API.webhook_URL'
-    },
-    'ytdl_discord_webhook_url': {
-        'key': 'ytdl_discord_webhook_url',
-        'path': 'YoutubeDLMaterial.API.discord_webhook_URL'
     },
     'ytdl_slack_webhook_url': {
         'key': 'ytdl_slack_webhook_url',

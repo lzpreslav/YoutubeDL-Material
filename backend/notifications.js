@@ -2,17 +2,11 @@ const db_api = require('./db');
 const config_api = require('./config');
 const logger = require('./logger');
 const utils = require('./utils');
-const consts = require('./consts');
 
 const { v4: uuid } = require('uuid');
 
 const fetch = require('node-fetch');
 const { gotify } = require("gotify");
-const TelegramBotAPI = require('node-telegram-bot-api');
-let telegram_bot = null;
-const REST = require('@discordjs/rest').REST;
-const API = require('@discordjs/core').API;
-const EmbedBuilder = require('@discordjs/builders').EmbedBuilder;
 
 const NOTIFICATION_TYPE_TO_TITLE = {
     task_finished: 'Task finished',
@@ -56,14 +50,8 @@ exports.sendNotification = async (notification) => {
     if (config_api.getConfigItem('ytdl_use_gotify_API') && config_api.getConfigItem('ytdl_gotify_server_url') && config_api.getConfigItem('ytdl_gotify_app_token')) {
         sendGotifyNotification(data);
     }
-    if (config_api.getConfigItem('ytdl_use_telegram_API') && config_api.getConfigItem('ytdl_telegram_bot_token') && config_api.getConfigItem('ytdl_telegram_chat_id')) {
-        exports.sendTelegramNotification(data);
-    }
     if (config_api.getConfigItem('ytdl_webhook_url')) {
         sendGenericNotification(data);
-    }
-    if (config_api.getConfigItem('ytdl_discord_webhook_url')) {
-        sendDiscordNotification(data);
     }
     if (config_api.getConfigItem('ytdl_slack_webhook_url')) {
         sendSlackNotification(data);
@@ -148,73 +136,6 @@ async function sendGotifyNotification({body, title, type, url, thumbnail}) {
             }
         }
       });
-}
-
-// Telegram
-
-setupTelegramBot();
-config_api.config_updated.subscribe(change => {
-    const use_telegram_api = config_api.getConfigItem('ytdl_use_telegram_API');
-    const bot_token = config_api.getConfigItem('ytdl_telegram_bot_token');
-    if (!use_telegram_api || !bot_token) return;
-    if (!change) return;
-    if (change['key'] === 'ytdl_use_telegram_API' || change['key'] === 'ytdl_telegram_bot_token' || change['key'] === 'ytdl_telegram_webhook_proxy') {
-        logger.debug('Telegram bot setting up');
-        setupTelegramBot();
-    }
-});
-
-async function setupTelegramBot() {
-    const use_telegram_api = config_api.getConfigItem('ytdl_use_telegram_API');
-    const bot_token = config_api.getConfigItem('ytdl_telegram_bot_token');
-    if (!use_telegram_api || !bot_token) return;
-    
-    telegram_bot = new TelegramBotAPI(bot_token);
-    const webhook_proxy = config_api.getConfigItem('ytdl_telegram_webhook_proxy');
-    const webhook_url = webhook_proxy ? webhook_proxy : `${utils.getBaseURL()}/api/telegramRequest`;
-    telegram_bot.setWebHook(webhook_url);
-}
-
-exports.sendTelegramNotification = async ({body, title, type, url, thumbnail}) => {
-    if (!telegram_bot){
-        logger.error('Telegram bot not found!');
-        return;
-    }
-
-    const chat_id = config_api.getConfigItem('ytdl_telegram_chat_id');
-    if (!chat_id){
-        logger.error('Telegram chat ID required!');
-        return;
-    }
-    
-    logger.verbose('Sending notification to Telegram');
-    if (thumbnail) await telegram_bot.sendPhoto(chat_id, thumbnail);
-    telegram_bot.sendMessage(chat_id, `<b>${title}</b>\n\n${body}\n<a href="${url}">${url}</a>`, {parse_mode: 'HTML'});
-}
-
-// Discord
-
-async function sendDiscordNotification({body, title, type, url, thumbnail}) {
-    const discord_webhook_url = config_api.getConfigItem('ytdl_discord_webhook_url');
-    const url_split = discord_webhook_url.split('webhooks/');
-    const [webhook_id, webhook_token] = url_split[1].split('/');
-    const rest = new REST({ version: '10' });
-    const api = new API(rest);
-    const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(0x00FFFF)
-        .setURL(url)
-        .setDescription(`ID: ${type}`);
-    if (thumbnail) embed.setThumbnail(thumbnail);
-    if (type === 'download_error') embed.setColor(0xFC2003);
-
-    const result = await api.webhooks.execute(webhook_id, webhook_token, {
-        content: body,
-        username: 'YoutubeDL-Material',
-        avatar_url: consts.ICON_URL,
-        embeds: [embed],
-    });
-    return result;
 }
 
 // Slack
