@@ -146,10 +146,6 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_webhook_url',
         'path': 'YoutubeDLMaterial.API.webhook_URL'
     },
-    'ytdl_discord_webhook_url': {
-        'key': 'ytdl_discord_webhook_url',
-        'path': 'YoutubeDLMaterial.API.discord_webhook_URL'
-    },
     'ytdl_slack_webhook_url': {
         'key': 'ytdl_slack_webhook_url',
         'path': 'YoutubeDLMaterial.API.slack_webhook_URL'

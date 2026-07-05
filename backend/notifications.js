@@ -2,15 +2,11 @@ const db_api = require('./db');
 const config_api = require('./config');
 const logger = require('./logger');
 const utils = require('./utils');
-const consts = require('./consts');
 
 const { v4: uuid } = require('uuid');
 
 const fetch = require('node-fetch');
 const { gotify } = require("gotify");
-const REST = require('@discordjs/rest').REST;
-const API = require('@discordjs/core').API;
-const EmbedBuilder = require('@discordjs/builders').EmbedBuilder;
 
 const NOTIFICATION_TYPE_TO_TITLE = {
     task_finished: 'Task finished',
@@ -56,9 +52,6 @@ exports.sendNotification = async (notification) => {
     }
     if (config_api.getConfigItem('ytdl_webhook_url')) {
         sendGenericNotification(data);
-    }
-    if (config_api.getConfigItem('ytdl_discord_webhook_url')) {
-        sendDiscordNotification(data);
     }
     if (config_api.getConfigItem('ytdl_slack_webhook_url')) {
         sendSlackNotification(data);
@@ -143,31 +136,6 @@ async function sendGotifyNotification({body, title, type, url, thumbnail}) {
             }
         }
       });
-}
-
-// Discord
-
-async function sendDiscordNotification({body, title, type, url, thumbnail}) {
-    const discord_webhook_url = config_api.getConfigItem('ytdl_discord_webhook_url');
-    const url_split = discord_webhook_url.split('webhooks/');
-    const [webhook_id, webhook_token] = url_split[1].split('/');
-    const rest = new REST({ version: '10' });
-    const api = new API(rest);
-    const embed = new EmbedBuilder()
-        .setTitle(title)
-        .setColor(0x00FFFF)
-        .setURL(url)
-        .setDescription(`ID: ${type}`);
-    if (thumbnail) embed.setThumbnail(thumbnail);
-    if (type === 'download_error') embed.setColor(0xFC2003);
-
-    const result = await api.webhooks.execute(webhook_id, webhook_token, {
-        content: body,
-        username: 'YoutubeDL-Material',
-        avatar_url: consts.ICON_URL,
-        embeds: [embed],
-    });
-    return result;
 }
 
 // Slack

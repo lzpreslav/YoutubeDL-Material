@@ -237,7 +237,6 @@ const DEFAULT_CONFIG = {
         "gotify_server_URL": "",
         "gotify_app_token": "",
         "webhook_URL": "",
-        "discord_webhook_URL": "",
         "slack_webhook_URL": "",
       },
       "Themes": {
