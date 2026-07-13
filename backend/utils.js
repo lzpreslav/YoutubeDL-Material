@@ -365,12 +365,13 @@ exports.fetchFile = async (url, path, file_label) => {
 
     len = parseInt(res.headers.get("Content-Length"), 10);
 
-    var bar = new ProgressBar(`  Downloading ${file_label} [:bar] :percent :etas`, {
+    // only render a progress bar on an interactive terminal
+    var bar = process.stderr.isTTY ? new ProgressBar(`  Downloading ${file_label} [:bar] :percent :etas`, {
         complete: '=',
         incomplete: ' ',
         width: 20,
         total: len
-    });
+    }) : null;
     const fileStream = fs.createWriteStream(path);
     await new Promise((resolve, reject) => {
         res.body.pipe(fileStream);
@@ -378,7 +379,7 @@ exports.fetchFile = async (url, path, file_label) => {
           reject(err);
         });
         res.body.on('data', function (chunk) {
-            bar.tick(chunk.length);
+            if (bar) bar.tick(chunk.length);
         });
         fileStream.on("finish", function() {
           resolve();
@@ -592,6 +593,5 @@ function File(id, title, thumbnailURL, isAudio, duration, url, uploader, size, p
     this.height = height;
     this.abr = abr;
     this.favorite = false;
-}   
+}
 exports.File = File;
-
