@@ -1,20 +1,30 @@
 const winston = require('winston');
 
-let debugMode = process.env.YTDL_MODE === 'debug';
+const debugMode = process.env.YTDL_MODE === 'debug';
 
-const defaultFormat = winston.format.printf(({ level, message, label, timestamp }) => {
-    return `${timestamp} ${level.toUpperCase()}: ${message}`;
-});
+// Timestamped format for the log files - the in-app log viewer reads combined.log.
+const fileFormat = winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ level, message, timestamp }) => `${timestamp} ${level.toUpperCase()}: ${message}`)
+);
+
+// Console: no timestamp (the container log collector stamps each entry itself). The level
+// prefix is kept so collectors can detect the level from the message.
+const consoleFormat = winston.format.printf(({ level, message }) => `${level.toUpperCase()}: ${message}`);
+
 const logger = winston.createLogger({
     level: 'info',
-    format: winston.format.combine(winston.format.timestamp(), defaultFormat),
+    format: fileFormat,
     defaultMeta: {},
     transports: [
-      //
-      // - Write all logs with level `info` and below to `combined.log`
-      //
+      // Write all logs (down to the active level) to `combined.log` - the in-app log viewer reads it.
       new winston.transports.File({ filename: 'appdata/logs/combined.log' }),
-      new winston.transports.Console({level: !debugMode ? 'info' : 'debug', name: 'console'})
+      new winston.transports.Console({
+          level: debugMode ? 'debug' : 'info',
+          format: consoleFormat,
+          stderrLevels: ['error'],
+          name: 'console'
+      })
     ]
 });
 
