@@ -333,8 +333,9 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
         if (!parsed_output) {
             const errored_download = await db_api.getRecord('download_queue', {uid: download_uid});
             if (errored_download && errored_download['paused']) return;
-            logger.error(err.toString());
-            await handleDownloadError(download_uid, err.toString(), 'unknown_error');
+            const error_message = utils.getCleanYoutubeDLError(err);
+            logger.error(error_message);
+            await handleDownloadError(download_uid, error_message, 'unknown_error');
             resolve(false);
             return;
         } else if (parsed_output) {
