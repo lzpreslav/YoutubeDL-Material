@@ -150,7 +150,7 @@ app.use(auth_api.passport.session());
 
 async function checkMigrations() {
     // 4.1->4.2 migration
-    
+
     const simplified_db_migration_complete = db.get('simplified_db_migration_complete').value();
     if (!simplified_db_migration_complete) {
         logger.info('Beginning migration: 4.1->4.2+')
@@ -229,7 +229,7 @@ async function simplifyDBFileStructure() {
         const playlists = db.get('playlists.video').value().concat(db.get('playlists.audio').value());
         db.assign({playlists: playlists}).write();
     }
-    
+
 
     return true;
 }
@@ -1102,7 +1102,7 @@ app.post('/api/getPlaylists', optionalJwt, async (req, res) => {
 app.post('/api/addFileToPlaylist', optionalJwt, async (req, res) => {
     let playlist_id = req.body.playlist_id;
     let file_uid = req.body.file_uid;
-    
+
     const playlist = await db_api.getRecord('playlists', {id: playlist_id});
 
     playlist.uids.push(file_uid);
@@ -1169,13 +1169,13 @@ app.post('/api/deleteAllFiles', optionalJwt, async (req, res) => {
 
     if (file_type_filter === 'audio_only') filter_obj['isAudio'] = true;
     else if (file_type_filter === 'video_only') filter_obj['isAudio'] = false;
-    
+
     files = await db_api.getRecords('files', filter_obj);
 
     let file_count = await db_api.getRecords('files', filter_obj, true);
     let delete_count = 0;
 
-    for (let i = 0; i < files.length; i++) {    
+    for (let i = 0; i < files.length; i++) {
         let wasDeleted = false;
         wasDeleted = await files_api.deleteFile(files[i].uid, blacklistMode);
         if (wasDeleted) {
@@ -1256,7 +1256,7 @@ app.post('/api/getArchives', optionalJwt, async (req, res) => {
 
 app.post('/api/downloadArchive', optionalJwt, async (req, res) => {
     const uuid = req.isAuthenticated() ? req.user.uid : null;
-    const sub_id = req.body.sub_id; 
+    const sub_id = req.body.sub_id;
     const type = req.body.type;
 
     const archive_text = await archive_api.generateArchive(type, uuid, sub_id);
@@ -1274,7 +1274,7 @@ app.post('/api/downloadArchive', optionalJwt, async (req, res) => {
 app.post('/api/importArchive', optionalJwt, async (req, res) => {
     const uuid = req.isAuthenticated() ? req.user.uid : null;
     const archive = req.body.archive;
-    const sub_id = req.body.sub_id; 
+    const sub_id = req.body.sub_id;
     const type = req.body.type;
 
     const archive_text = Buffer.from(archive.split(',')[1], 'base64').toString();
@@ -1536,7 +1536,7 @@ app.post('/api/confirmTask', optionalJwt, async (req, res) => {
 app.post('/api/updateTaskSchedule', optionalJwt, async (req, res) => {
     const task_key = req.body.task_key;
     const new_schedule = req.body.new_schedule;
-  
+
     await tasks_api.updateTaskSchedule(task_key, new_schedule);
 
     res.send({success: true});
@@ -1545,7 +1545,7 @@ app.post('/api/updateTaskSchedule', optionalJwt, async (req, res) => {
 app.post('/api/updateTaskData', optionalJwt, async (req, res) => {
     const task_key = req.body.task_key;
     const new_data = req.body.new_data;
-  
+
     const success = await db_api.updateRecord('tasks', {key: task_key}, {data: new_data});
 
     res.send({success: success});
@@ -1554,7 +1554,7 @@ app.post('/api/updateTaskData', optionalJwt, async (req, res) => {
 app.post('/api/updateTaskOptions', optionalJwt, async (req, res) => {
     const task_key = req.body.task_key;
     const new_options = req.body.new_options;
-  
+
     const success = await db_api.updateRecord('tasks', {key: task_key}, {options: new_options});
 
     res.send({success: success});
@@ -1660,14 +1660,14 @@ app.post('/api/auth/register', optionalJwt, async (req, res) => {
     if (!userid || !username) {
         logger.error(`Registration failed for user ${userid}. Username or userid is invalid.`);
     }
-  
+
     const new_user = await auth_api.registerUser(userid, username, plaintextPassword);
-  
+
     if (!new_user) {
       res.sendStatus(409);
       return;
     }
-  
+
     res.send({
       user: new_user
     });
