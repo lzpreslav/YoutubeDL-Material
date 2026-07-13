@@ -115,6 +115,10 @@ environment:
     GID: YOUR_GID
 ```
 
+### Logging
+
+The container logs to stdout/stderr in a format suited to container log collectors (Docker/podman `logs`, journald, syslog, Loki). Informational output goes to **stdout** and errors go to **stderr**; each line is prefixed with its log level (e.g. `INFO:`, `ERROR:`) so collectors can detect the level, and no timestamps are printed since the collector stamps each entry itself. The in-app log viewer is unaffected — full timestamped logs are always kept in `appdata/logs/`.
+
 ## MongoDB
 
 For much better scaling with large datasets please run your YoutubeDL-Material instance with MongoDB backend rather than the json file-based default. It will fix a lot of performance problems (especially with datasets in the tens of thousands videos/audios)!

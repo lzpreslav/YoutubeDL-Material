@@ -1624,13 +1624,9 @@ app.post('/api/logs', optionalJwt, async function(req, res) {
 
 app.post('/api/clearAllLogs', optionalJwt, async function(req, res) {
     const logs_path = path.join('appdata', 'logs', 'combined.log');
-    const logs_err_path = path.join('appdata', 'logs', 'error.log');
     let success = false;
     try {
-        await Promise.all([
-            fs.writeFile(logs_path, ''),
-            fs.writeFile(logs_err_path, '')
-        ])
+        await fs.writeFile(logs_path, '');
         success = true;
     } catch(e) {
         logger.error(e);
