@@ -243,9 +243,21 @@ async function startServer() {
         await setPortItemFromENV();
     }
 
-    app.listen(backendPort,function(){
+    const server = app.listen(backendPort,function(){
         logger.info(`YoutubeDL-Material ${CONSTS['CURRENT_VERSION']} started on PORT ${backendPort}`);
     });
+
+    // graceful shutdown
+    // kernel ignores signals for PID 1 without an explicit handler
+    const shutdown = async (signal) => {
+        logger.info(`Received ${signal}, shutting down.`);
+        // Don't wait forever on lingering keep-alive connections or a stuck kill.
+        setTimeout(() => process.exit(0), 5000).unref();
+        await killAllDownloads();
+        server.close(() => process.exit(0));
+    };
+    // guard against multiple ctrl+c, once() fires the handler a single time per signal
+    for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => shutdown(signal));
 }
 
 async function killAllDownloads() {
