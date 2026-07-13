@@ -77,3 +77,6 @@ audio/
 video/
 subscriptions/
 users/
+
+# direnv
+.direnv

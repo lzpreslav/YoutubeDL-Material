@@ -551,6 +551,29 @@ exports.parseOutputJSON = (output, err) => {
     }
 }
 
+// Turns a failed yt-dlp error into a short, readable message we can log and send in notifications.
+// When yt-dlp runs with -j it prints a huge metadata JSON to stdout, execa bundles that whole blob into the error.
+const MAX_ERROR_LENGTH = 2000;
+exports.getCleanYoutubeDLError = (err) => {
+    if (!err) return 'Unknown error';
+
+    // Non-execa errors (e.g. a plain string) have nothing to extract, so use them as-is.
+    if (typeof err !== 'object' || !err.stderr) {
+        return truncateError(err.shortMessage || err.message || err.toString());
+    }
+
+    // yt-dlp prints the reason it failed to stderr as one or more "ERROR:" lines. Pull those out
+    // and drop everything else. If there are none, fall back to execa's short one-line summary.
+    const ytdlp_error_lines = err.stderr.split(/\r?\n/).filter(line => line.trim().startsWith('ERROR:'));
+    const message = ytdlp_error_lines.length > 0 ? ytdlp_error_lines.join('\n') : (err.shortMessage || err.stderr);
+    return truncateError(message);
+}
+
+// Keeps a message short enough for logs and third-party notification limits (e.g. Slack blocks).
+function truncateError(message) {
+    return message.length > MAX_ERROR_LENGTH ? `${message.slice(0, MAX_ERROR_LENGTH)}...` : message;
+}
+
 // objects
 
 function File(id, title, thumbnailURL, isAudio, duration, url, uploader, size, path, upload_date, description, view_count, height, abr) {
