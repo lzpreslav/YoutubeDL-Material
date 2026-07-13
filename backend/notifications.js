@@ -196,6 +196,10 @@ function sendSlackNotification({body, title, type, url, thumbnail}) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(data),
+    }).then(async (res) => {
+        if (!res.ok) logger.error(`Failed to send slack notification: ${res.status} ${await res.text()}`);
+    }).catch((err) => {
+        logger.error(`Failed to send slack notification: ${err}`);
     });
 }
 
