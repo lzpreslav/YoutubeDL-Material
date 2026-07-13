@@ -1654,19 +1654,19 @@ app.post('/api/auth/register', optionalJwt, async (req, res) => {
     const plaintextPassword = req.body.password;
 
     if (userid !== 'admin' && !config_api.getConfigItem('ytdl_allow_registration') && !req.isAuthenticated() && (!req.user || !exports.userHasPermission(req.user.uid, 'settings'))) {
-        logger.error(`Registration failed for user ${userid}. Registration is disabled.`);
+        logger.warn(`Registration failed for user ${userid}. Registration is disabled.`);
         res.sendStatus(409);
         return;
     }
 
     if (plaintextPassword === "") {
-        logger.error(`Registration failed for user ${userid}. A password must be provided.`);
+        logger.warn(`Registration failed for user ${userid}. A password must be provided.`);
         res.sendStatus(409);
         return;
     }
 
     if (!userid || !username) {
-        logger.error(`Registration failed for user ${userid}. Username or userid is invalid.`);
+        logger.warn(`Registration failed for user ${userid}. Username or userid is invalid.`);
     }
 
     const new_user = await auth_api.registerUser(userid, username, plaintextPassword);
@@ -1808,7 +1808,7 @@ app.post('/api/deleteAllNotifications', optionalJwt, async (req, res) => {
 
 app.get('/api/rss', async function (req, res) {
     if (!config_api.getConfigItem('ytdl_enable_rss_feed')) {
-        logger.error('RSS feed is disabled! It must be enabled in the settings before it can be generated.');
+        logger.warn('RSS feed is disabled! It must be enabled in the settings before it can be generated.');
         res.sendStatus(403);
         return;
     }

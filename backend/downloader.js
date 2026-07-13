@@ -82,7 +82,7 @@ exports.pauseDownload = async (download_uid) => {
         logger.warn(`Download ${download_uid} is already paused!`);
         return false;
     } else if (download['finished']) {
-        logger.info(`Download ${download_uid} could not be paused before completing.`);
+        logger.verbose(`Download ${download_uid} could not be paused before completing.`);
         return false;
     } else {
         logger.info(`Pausing download ${download_uid}`);
@@ -121,7 +121,7 @@ exports.cancelDownload = async (download_uid) => {
         logger.warn(`Download ${download_uid} is already cancelled!`);
         return false;
     } else if (download['finished']) {
-        logger.info(`Download ${download_uid} could not be cancelled before completing.`);
+        logger.verbose(`Download ${download_uid} could not be cancelled before completing.`);
         return false;
     } else {
         logger.info(`Cancelling download ${download_uid}`);
@@ -333,9 +333,9 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
         if (!parsed_output) {
             const errored_download = await db_api.getRecord('download_queue', {uid: download_uid});
             if (errored_download && errored_download['paused']) return;
-            const error_message = utils.getCleanYoutubeDLError(err);
-            logger.error(error_message);
-            await handleDownloadError(download_uid, error_message, 'unknown_error');
+            const detail = utils.getCleanYoutubeDLError(err);
+            logger.error(`Download failed for ${url}: ${detail}`);
+            await handleDownloadError(download_uid, detail, 'unknown_error');
             resolve(false);
             return;
         } else if (parsed_output) {
@@ -371,7 +371,7 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
                 if (!fs.existsSync(output_json['_filename']) && fs.existsSync(output_json['_filename'] + '.webm')) {
                     try {
                         fs.renameSync(output_json['_filename'] + '.webm', output_json['_filename']);
-                        logger.info('Renamed ' + file_name + '.webm to ' + file_name);
+                        logger.verbose('Renamed ' + file_name + '.webm to ' + file_name);
                     } catch(e) {
                         logger.error(`Failed to rename file ${output_json['_filename']} to its appropriate extension.`);
                     }
@@ -572,11 +572,10 @@ exports.getVideoInfoByURL = async (url, args = [], download_uid = null) => {
     let {callback} = await youtubedl_api.runYoutubeDL(url, new_args);
     const {parsed_output, err} = await callback;
     if (!parsed_output || parsed_output.length === 0) {
-        let error_message = `Error while retrieving info on video with URL ${url} with the following message: ${err}`;
-        if (err.stderr) error_message += `\n\n${err.stderr}`;
-        logger.error(error_message);
+        const detail = utils.getCleanYoutubeDLError(err);
+        logger.error(`Failed to retrieve info for ${url}: ${detail}`);
         if (download_uid) {
-            await handleDownloadError(download_uid, error_message, 'info_retrieve_failed');
+            await handleDownloadError(download_uid, detail, 'info_retrieve_failed');
         }
         return null;
     }

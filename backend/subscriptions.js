@@ -26,7 +26,7 @@ exports.subscribe = async (sub, user_uid = null, skip_get_info = false) => {
         let url_exists = !!(await db_api.getRecord('subscriptions', {url: sub.url, user_uid: user_uid}));
 
         if (!sub.name && url_exists) {
-            logger.error(`Sub with the same URL "${sub.url}" already exists -- please provide a custom name for this new subscription.`);
+            logger.warn(`Sub with the same URL "${sub.url}" already exists -- please provide a custom name for this new subscription.`);
             result_obj.error = 'Subcription with URL ' + sub.url + ' already exists! Custom name is required.';
             resolve(result_obj);
             return;
@@ -66,7 +66,7 @@ async function getSubscriptionInfo(sub) {
     let {callback} = await youtubedl_api.runYoutubeDL(sub.url, downloadConfig);
     const {parsed_output, err} = await callback;
     if (err) {
-        logger.error(err.stderr);
+        logger.error(`Failed to get info for subscription ${sub.name || sub.url}: ${utils.getCleanYoutubeDLError(err)}`);
         return false;
     }
     logger.verbose('Subscribe: got info for subscription ' + sub.id);
@@ -226,7 +226,7 @@ exports.watchSubscriptionsInterval = async () => {
 async function watchSubscriptions() {
     const subscription_ids = await getValidSubscriptionsToCheck();
     if (subscription_ids.length === 0) {
-        logger.info('Skipping subscription check as no valid subscriptions exist.');
+        logger.verbose('Skipping subscription check as no valid subscriptions exist.');
         return;
     }
     checkSubscription(subscription_ids[current_sub_index]);
@@ -297,8 +297,7 @@ async function _getVideosForSub(sub) {
     const {parsed_output, err} = await callback;
     updateSubscriptionProperty(sub, {downloading: false, child_process: null}, user_uid);
     if (!parsed_output) {
-        logger.error('Subscription check failed!');
-        if (err) logger.error(err);
+        logger.error(`Subscription check failed for ${sub.name || sub.url}: ${utils.getCleanYoutubeDLError(err)}`);
         return null;
     }
 
@@ -451,7 +450,7 @@ async function getFilesToDownload(sub, output_jsons) {
             const file_with_path_exists = await db_api.getRecord('files', {sub_id: sub.id, path: output_json['_filename']});
             if (file_with_path_exists) {
                 // or maybe just overwrite???
-                logger.info(`Skipping adding file ${output_json['_filename']} for subscription ${sub.name} as a file with that path already exists.`)
+                logger.verbose(`Skipping adding file ${output_json['_filename']} for subscription ${sub.name} as a file with that path already exists.`)
                 continue;
             }
             const exists_in_archive = await archive_api.existsInArchive(output_json['extractor'], output_json['id'], sub.type, sub.user_uid, sub.id);

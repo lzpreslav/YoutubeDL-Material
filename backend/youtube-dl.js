@@ -96,7 +96,7 @@ exports.checkForYoutubeDLUpdate = async () => {
     // if the binary does not exist, or default_downloader doesn't match existing fork, or if the fork has been updated, redownload
     // TODO: don't redownload if fork already exists
     if (!fs.existsSync(output_file_path) || current_fork !== selected_fork || !current_version || current_version !== latest_version) {
-        logger.warn(`Updating ${selected_fork} binary to '${output_file_path}', downloading...`);
+        logger.info(`Updating ${selected_fork} binary to '${output_file_path}', downloading...`);
         await exports.updateYoutubeDL(latest_version);
     }
 }

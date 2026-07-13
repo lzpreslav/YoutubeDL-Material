@@ -113,11 +113,11 @@ exports.registerUser = async (userid, username, plaintextPassword) => {
   // check if user exists
   if (await db_api.getRecord('users', {uid: userid})) {
     // user id is taken!
-    logger.error('Registration failed: UID is already taken!');
+    logger.warn('Registration failed: UID is already taken!');
     return null;
   } else if (await db_api.getRecord('users', {name: username})) {
       // user name is taken!
-      logger.error('Registration failed: User name is already taken!');
+      logger.warn('Registration failed: User name is already taken!');
       return null;
   } else {
     // add to db
@@ -160,7 +160,7 @@ exports.login = async (username, password) => {
   // even if we're using LDAP, we still want users to be able to login using internal credentials
   const user = await db_api.getRecord('users', {name: username});
   if (!user) {
-    if (config_api.getConfigItem('ytdl_auth_method') === 'internal') logger.error(`User ${username} not found`);
+    if (config_api.getConfigItem('ytdl_auth_method') === 'internal') logger.warn(`User ${username} not found`);
     return false;
   }
   if (user.auth_method && user.auth_method !== 'internal') { return false }

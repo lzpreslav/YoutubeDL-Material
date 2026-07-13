@@ -525,7 +525,7 @@ exports.parseOutputJSON = (output, err) => {
         if (!err.stderr.includes('This video is unavailable') && !err.stderr.includes('Private video')) {
             return null;
         }
-        logger.info('An error was encountered with at least one video, backup method will be used.')
+        logger.verbose('An error was encountered with at least one video, backup method will be used.')
         try {
             split_output = err.stdout.split(/\r\n|\r|\n/);
         } catch (e) {
@@ -552,22 +552,31 @@ exports.parseOutputJSON = (output, err) => {
     }
 }
 
-// Turns a failed yt-dlp error into a short, readable message we can log and send in notifications.
-// When yt-dlp runs with -j it prints a huge metadata JSON to stdout, execa bundles that whole blob into the error.
+// Cleans a failed yt-dlp run into one greppable line: deduped "ERROR:" reasons only, no command dump.
 const MAX_ERROR_LENGTH = 2000;
 exports.getCleanYoutubeDLError = (err) => {
-    if (!err) return 'Unknown error';
+    // falsy err = yt-dlp exited 0 with no info (unavailable/private/match-filter), so explain rather than log ''
+    if (!err) return 'yt-dlp returned no video info (video may be unavailable, private, or excluded by a match-filter)';
 
-    // Non-execa errors (e.g. a plain string) have nothing to extract, so use them as-is.
-    if (typeof err !== 'object' || !err.stderr) {
-        return truncateError(err.shortMessage || err.message || err.toString());
+    const raw = (typeof err !== 'object' || !err.stderr)
+        ? (err.shortMessage || err.message || String(err))
+        : extractYoutubeDLErrorLines(err);
+
+    return truncateError(collapseWhitespace(raw));
+}
+
+// Deduped "ERROR:" reason lines from stderr; falls back to execa's short summary when there are none.
+function extractYoutubeDLErrorLines(err) {
+    const reasons = new Set();
+    for (const line of err.stderr.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('ERROR:')) reasons.add(trimmed.replace(/^ERROR:\s*/, ''));
     }
+    return reasons.size > 0 ? [...reasons].join('; ') : (err.shortMessage || err.stderr || 'Unknown error');
+}
 
-    // yt-dlp prints the reason it failed to stderr as one or more "ERROR:" lines. Pull those out
-    // and drop everything else. If there are none, fall back to execa's short one-line summary.
-    const ytdlp_error_lines = err.stderr.split(/\r?\n/).filter(line => line.trim().startsWith('ERROR:'));
-    const message = ytdlp_error_lines.length > 0 ? ytdlp_error_lines.join('\n') : (err.shortMessage || err.stderr);
-    return truncateError(message);
+function collapseWhitespace(message) {
+    return String(message).replace(/\s+/g, ' ').trim();
 }
 
 // Keeps a message short enough for logs and third-party notification limits (e.g. Slack blocks).
