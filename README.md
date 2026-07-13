@@ -1,10 +1,7 @@
 # YoutubeDL-Material
 
-[![Docker pulls badge](https://img.shields.io/docker/pulls/tzahi12345/youtubedl-material.svg)](https://hub.docker.com/r/tzahi12345/youtubedl-material)
-[![Docker image size badge](https://img.shields.io/docker/image-size/tzahi12345/youtubedl-material?sort=date)](https://hub.docker.com/r/tzahi12345/youtubedl-material)
-[![Heroku deploy badge](https://img.shields.io/badge/%E2%86%91_Deploy_to-Heroku-7056bf.svg)](https://heroku.com/deploy?template=https://github.com/Tzahi12345/YoutubeDL-Material)
-[![GitHub issues badge](https://img.shields.io/github/issues/Tzahi12345/YoutubeDL-Material)](https://github.com/Tzahi12345/YoutubeDL-Material/issues)
-[![License badge](https://img.shields.io/github/license/Tzahi12345/YoutubeDL-Material)](https://github.com/Tzahi12345/YoutubeDL-Material/blob/master/LICENSE.md)
+[![GitHub issues badge](https://img.shields.io/github/issues/lzpreslav/YoutubeDL-Material)](https://github.com/lzpreslav/YoutubeDL-Material/issues)
+[![License badge](https://img.shields.io/github/license/lzpreslav/YoutubeDL-Material)](https://github.com/lzpreslav/YoutubeDL-Material/blob/master/LICENSE.md)
 
 YoutubeDL-Material is a Material Design frontend for [youtube-dl](https://rg3.github.io/youtube-dl/). It's coded using [Angular 15](https://angular.io/) for the frontend, and [Node.js](https://nodejs.org/) on the backend.
 
