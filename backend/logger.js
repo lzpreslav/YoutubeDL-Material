@@ -11,10 +11,8 @@ const logger = winston.createLogger({
     defaultMeta: {},
     transports: [
       //
-      // - Write to all logs with level `info` and below to `combined.log`
-      // - Write all logs error (and below) to `error.log`.
+      // - Write all logs with level `info` and below to `combined.log`
       //
-      new winston.transports.File({ filename: 'appdata/logs/error.log', level: 'error' }),
       new winston.transports.File({ filename: 'appdata/logs/combined.log' }),
       new winston.transports.Console({level: !debugMode ? 'info' : 'debug', name: 'console'})
     ]

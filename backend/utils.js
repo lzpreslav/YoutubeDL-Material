@@ -486,7 +486,7 @@ exports.updateLoggerLevel = (new_logger_level) => {
     }
     logger.level = new_logger_level;
     winston.loggers.get('console').level = new_logger_level;
-    logger.transports[2].level = new_logger_level;
+    logger.transports[1].level = new_logger_level;
 }
 
 exports.convertFlatObjectToNestedObject = (obj) => {
