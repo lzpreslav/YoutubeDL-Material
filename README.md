@@ -13,6 +13,7 @@ Now with [Docker](#Docker) support!
 
 This is a fork of [Tzahi12345/YoutubeDL-Material](https://github.com/Tzahi12345/YoutubeDL-Material) that targets container deployments. Backwards-incompatible changes:
 
+* **`Host.url` is the full public URL.** Include the port unless it is the protocol default (`http://host:17442`, `https://ytdl.example.com`). `Host.port` now only sets the port the app listens on.
 * **Discord and Telegram notifications removed**, along with their config keys, the `/api/telegramRequest` webhook, and their settings UI. Both pulled vulnerable dependencies that could not be patched here. ntfy, gotify, Slack and generic webhooks are unaffected.
 * **Self-update removed.** The app can no longer update itself from the UI — pull a new image instead. yt-dlp binary updates are unaffected.
 * **youtube-dlc support removed.** Unmaintained since 2021.

@@ -196,7 +196,7 @@ function getConfigItemKeyByPath(path) {
 const DEFAULT_CONFIG = {
     "YoutubeDLMaterial": {
       "Host": {
-        "url": "http://example.com",
+        "url": "http://example.com:17442",
         "port": "17442"
       },
       "Downloader": {

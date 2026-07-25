@@ -9,14 +9,14 @@
                         <mat-form-field class="text-field" color="accent">
                             <mat-label i18n="URL">URL</mat-label>
                             <input [(ngModel)]="new_config['Host']['url']" matInput required>
-                            <mat-hint><ng-container i18n="URL setting input hint">URL this app will be accessed from, without the port.</ng-container></mat-hint>
+                            <mat-hint><ng-container i18n="URL setting input hint">Full URL this app is accessed from, including the port if it isn't the default for the protocol. Behind a reverse proxy, use the public URL (e.g. https://example.com).</ng-container></mat-hint>
                         </mat-form-field>
                     </div>
                     <div class="col-12 mb-4 mt-3">
                         <mat-form-field class="text-field" color="accent">
                             <mat-label i18n="Port">Port</mat-label>
                             <input [(ngModel)]="new_config['Host']['port']" matInput required>
-                            <mat-hint><ng-container i18n="Port setting input hint">The desired port. Default is 17442.</ng-container></mat-hint>
+                            <mat-hint><ng-container i18n="Port setting input hint">The port the app listens on. Not used to build links &ndash; put the public port in the URL above. Default is 17442.</ng-container></mat-hint>
                         </mat-form-field>
                     </div>
                 </div>
