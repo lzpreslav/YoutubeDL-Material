@@ -9,6 +9,20 @@ Now with [Docker](#Docker) support!
 
 <hr>
 
+## Differences from upstream
+
+This is a fork of [Tzahi12345/YoutubeDL-Material](https://github.com/Tzahi12345/YoutubeDL-Material) that targets container deployments. Backwards-incompatible changes:
+
+* **Discord and Telegram notifications removed**, along with their config keys, the `/api/telegramRequest` webhook, and their settings UI. Both pulled vulnerable dependencies that could not be patched here. ntfy, gotify, Slack and generic webhooks are unaffected.
+* **Self-update removed.** The app can no longer update itself from the UI — pull a new image instead. yt-dlp binary updates are unaffected.
+* **youtube-dlc support removed.** Unmaintained since 2021.
+* **pm2 removed.** The container runtime supervises the process instead.
+* **32-bit ARM images are no longer built.**
+* **npm, npx and corepack are absent from the runtime image.** It only runs `node app.js`.
+* **Logs go to stdout/stderr** with a `LEVEL:` prefix and no timestamp, so a log collector can classify and stamp them. `error.log` is gone; `combined.log` still contains errors and still backs the in-app log viewer.
+
+<hr>
+
 ## Getting Started
 
 Check out the prerequisites, and go to the [installation](#Installing) section. Easy as pie!
