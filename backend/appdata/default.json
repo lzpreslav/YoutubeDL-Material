@@ -25,6 +25,7 @@
       "enable_downloads_manager": true,
       "allow_playlist_categorization": true,
       "force_autoplay": false,
+      "enable_hover_preview": true,
       "enable_notifications": true,
       "enable_all_notifications": true,
       "allowed_notification_types": [],

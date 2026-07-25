@@ -44,6 +44,7 @@ export class UnifiedFileCardComponent implements OnInit {
   @Input() file_obj = null;
   @Input() card_size = 'medium';
   @Input() use_youtubedl_archive = false;
+  @Input() enable_hover_preview = true;
   @Input() is_playlist = false;
   @Input() index: number;
   @Input() locale = null;
@@ -148,6 +149,7 @@ export class UnifiedFileCardComponent implements OnInit {
 
   onMouseOver() {
     this.elevated = true;
+    if (!this.enable_hover_preview) return;
     setTimeout(() => {
       if (this.elevated) {
         this.hide_image = true;

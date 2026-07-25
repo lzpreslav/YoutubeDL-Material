@@ -68,6 +68,10 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_force_autoplay',
         'path': 'YoutubeDLMaterial.Extra.force_autoplay'
     },
+    'ytdl_enable_hover_preview': {
+        'key': 'ytdl_enable_hover_preview',
+        'path': 'YoutubeDLMaterial.Extra.enable_hover_preview'
+    },
     'ytdl_enable_downloads_manager': {
         'key': 'ytdl_enable_downloads_manager',
         'path': 'YoutubeDLMaterial.Extra.enable_downloads_manager'
