@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
-const archiver = require('archiver');
+const { ZipArchive } = require('archiver');
 const fetch = require('node-fetch');
 const ProgressBar = require('progress');
 const winston = require('winston');
@@ -71,8 +71,7 @@ exports.createContainerZipFile = async (file_name, container_file_objs) => {
 exports.createZipFile = async (zip_file_path, file_paths) => {
     let output = fs.createWriteStream(zip_file_path);
 
-    var archive = archiver('zip', {
-        gzip: true,
+    var archive = new ZipArchive({
         zlib: { level: 9 } // Sets the compression level.
     });
 
