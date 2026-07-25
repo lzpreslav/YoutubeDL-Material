@@ -909,6 +909,47 @@ describe('Utils', async function() {
         assert(nested_obj2['test1'] && nested_obj2['test1']['test_sub']);
         assert(nested_obj2['test1'] && nested_obj2['test1']['test2'] && nested_obj2['test1']['test2']['test_sub']);
     });
+
+    describe('Base URL', async function() {
+        let original_url = null;
+        let original_port = null;
+
+        before(function() {
+            original_url = config_api.getConfigItem('ytdl_url');
+            original_port = config_api.getConfigItem('ytdl_port');
+        });
+
+        after(function() {
+            config_api.setConfigItem('ytdl_url', original_url);
+            config_api.setConfigItem('ytdl_port', original_port);
+        });
+
+        it('Uses the host URL verbatim and never appends the listen port', async function() {
+            config_api.setConfigItem('ytdl_port', '17442');
+
+            // reverse proxy: public URL is on the protocol default port, so no port should ever appear
+            config_api.setConfigItem('ytdl_url', 'https://example.com');
+            assert.strictEqual(utils.getBaseURL(), 'https://example.com');
+
+            // direct access: the port is part of the configured URL and must be preserved
+            config_api.setConfigItem('ytdl_url', 'http://example.com:17442');
+            assert.strictEqual(utils.getBaseURL(), 'http://example.com:17442');
+
+            // a public port that differs from the listen port must survive untouched
+            config_api.setConfigItem('ytdl_url', 'https://example.com:8443');
+            assert.strictEqual(utils.getBaseURL(), 'https://example.com:8443');
+        });
+
+        it('Strips trailing slashes so appended paths stay well formed', async function() {
+            config_api.setConfigItem('ytdl_url', 'https://example.com/');
+            assert.strictEqual(utils.getBaseURL(), 'https://example.com');
+            assert.strictEqual(`${utils.getBaseURL()}/#/downloads`, 'https://example.com/#/downloads');
+
+            // subpath deployments keep their path
+            config_api.setConfigItem('ytdl_url', 'https://example.com/ytdlm/');
+            assert.strictEqual(utils.getBaseURL(), 'https://example.com/ytdlm');
+        });
+    });
 });
 
 describe('Categories', async function() {

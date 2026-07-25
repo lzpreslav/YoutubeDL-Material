@@ -474,8 +474,9 @@ exports.getArchiveFolder = (type, user_uid = null, sub = null) => {
     }
 }
 
+// ytdl_url is the full public URL, port included when it isn't the protocol default
 exports.getBaseURL = () => {
-    return `${config_api.getConfigItem('ytdl_url')}:${config_api.getConfigItem('ytdl_port')}`
+    return String(config_api.getConfigItem('ytdl_url') || '').replace(/\/+$/, '');
 }
 
 exports.updateLoggerLevel = (new_logger_level) => {
