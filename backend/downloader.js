@@ -245,7 +245,7 @@ exports.collectInfo = async (download_uid) => {
     const useYoutubeDLArchive = config_api.getConfigItem('ytdl_use_youtubedl_archive');
     if (useYoutubeDLArchive && !options.ignoreArchive && info.length === 1) {
         const info_obj = info[0];
-        const exists_in_archive = await archive_api.existsInArchive(info['extractor'], info_obj['id'], type, download['user_uid'], download['sub_id']);
+        const exists_in_archive = await archive_api.existsInArchive(info_obj['extractor'], info_obj['id'], type, download['user_uid'], download['sub_id']);
         if (exists_in_archive) {
             const error = `File '${info_obj['title']}' already exists in archive! Disable the archive or override to continue downloading.`;
             logger.warn(error);

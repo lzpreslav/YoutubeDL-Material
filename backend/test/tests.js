@@ -881,6 +881,28 @@ describe('Archive', async function() {
         const archive_item3 = await db_api.getRecord('archives', {extractor: 'testextractor2', id: 'testing2'});
         assert(!!archive_item3);
     });
+
+    it('Archived video fails to download', async function() {
+        const downloader_api = require('../downloader');
+        const prefetched_info = [{extractor: 'testextractor1', id: 'testing1', title: 'test_title', _filename: 'test_title.mp4'}];
+
+        const archive_enabled = config_api.getConfigItem('ytdl_use_youtubedl_archive');
+        config_api.setConfigItem('ytdl_use_youtubedl_archive', true);
+        try {
+            await archive_api.addToArchive('testextractor1', 'testing1', 'video', 'test_title');
+
+            const download = await downloader_api.createDownload('test_url', 'video', {}, null, null, null, prefetched_info);
+            // the info is only complete enough to reach the archive check, so let the rest fail
+            await downloader_api.collectInfo(download['uid']).catch(() => {});
+
+            const updated_download = await db_api.getRecord('download_queue', {uid: download['uid']});
+            assert(updated_download['error_type'] === 'exists_in_archive');
+
+            await db_api.removeRecord('download_queue', {uid: download['uid']});
+        } finally {
+            config_api.setConfigItem('ytdl_use_youtubedl_archive', archive_enabled);
+        }
+    });
 });
 
 describe('Utils', async function() {
