@@ -80,12 +80,15 @@ function applyCategoryRules(file_json, rules, category_name) {
 
         let preceding_operator = rule['preceding_operator'];
 
+        // the property may be missing from the info json, or not be a string
+        const prop_value = String(file_json[rule['property']] ?? '');
+
         switch (rule['comparator']) {
             case 'includes':
-                rule_applies = file_json[rule['property']].toLowerCase().includes(rule['value'].toLowerCase());
+                rule_applies = prop_value.toLowerCase().includes(rule['value'].toLowerCase());
                 break;
             case 'not_includes':
-                rule_applies = !(file_json[rule['property']].toLowerCase().includes(rule['value'].toLowerCase()));
+                rule_applies = !(prop_value.toLowerCase().includes(rule['value'].toLowerCase()));
                 break;
             case 'equals':
                 rule_applies = file_json[rule['property']] === rule['value'];

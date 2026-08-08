@@ -1076,6 +1076,30 @@ describe('Categories', async function() {
         const category = await categories_api.categorize([sample_video_json]);
         assert(category);
     });
+
+    it('Categorize - includes on a missing property', async function() {
+        await db_api.pushToRecordsArray('categories', {name: 'test_category'}, 'rules', {
+            preceding_operator: null,
+            comparator: 'includes',
+            property: 'channel_id',
+            value: 'UCKaDMw10CmbE22XJhaunoiQ'
+        });
+
+        const category = await categories_api.categorize([sample_video_json]);
+        assert(!category);
+    });
+
+    it('Categorize - includes on a numeric property', async function() {
+        await db_api.pushToRecordsArray('categories', {name: 'test_category'}, 'rules', {
+            preceding_operator: null,
+            comparator: 'includes',
+            property: 'view_count',
+            value: '230'
+        });
+
+        const category = await categories_api.categorize([sample_video_json]);
+        assert(category && category.name === 'test_category');
+    });
 });
 
 describe('Config', async function() {
