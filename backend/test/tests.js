@@ -1100,6 +1100,34 @@ describe('Categories', async function() {
         const category = await categories_api.categorize([sample_video_json]);
         assert(category && category.name === 'test_category');
     });
+
+    it('Categorize - channel_id equals', async function() {
+        const channel_id_a = 'UCKaDMw10CmbE22XJhaunoiQ';
+        const channel_id_b = 'UC245Pz9Zd55S-AbBACHkA6Q';
+
+        await db_api.pushToRecordsArray('categories', {name: 'test_category'}, 'rules', {
+            preceding_operator: null,
+            comparator: 'equals',
+            property: 'channel_id',
+            value: channel_id_a
+        });
+
+        await db_api.pushToRecordsArray('categories', {name: 'test_category'}, 'rules', {
+            preceding_operator: 'or',
+            comparator: 'equals',
+            property: 'channel_id',
+            value: channel_id_b
+        });
+
+        const matching_category = await categories_api.categorize([{...sample_video_json, channel_id: channel_id_b}]);
+        assert(matching_category && matching_category.name === 'test_category');
+
+        const unlisted_category = await categories_api.categorize([{...sample_video_json, channel_id: 'UCunlisted'}]);
+        assert(!unlisted_category);
+
+        const missing_category = await categories_api.categorize([sample_video_json]);
+        assert(!missing_category);
+    });
 });
 
 describe('Config', async function() {
