@@ -361,6 +361,7 @@ exports.checkExistsWithTimeout = async (filePath, timeout) => {
 exports.fetchFile = async (url, path, file_label) => {
     var len = null;
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to download ${file_label} from ${url}: ${res.status} ${res.statusText}`);
 
     len = parseInt(res.headers.get("Content-Length"), 10);
 
@@ -379,6 +380,9 @@ exports.fetchFile = async (url, path, file_label) => {
         });
         res.body.on('data', function (chunk) {
             if (bar) bar.tick(chunk.length);
+        });
+        fileStream.on("error", (err) => {
+          reject(err);
         });
         fileStream.on("finish", function() {
           resolve();

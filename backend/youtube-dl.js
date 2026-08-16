@@ -117,15 +117,20 @@ async function downloadLatestYoutubeDLBinaryGeneric(youtubedl_fork, new_version,
     // build the URL
     const download_url = `${exports.youtubedl_forks[youtubedl_fork]['download_url']}${file_ext}`;
     const output_path = custom_output_path || getYoutubeDLPath(youtubedl_fork);
+    // download to a temp file and rename, writing in place would fail while the binary is running
+    // and would leave a truncated binary behind if the download dies halfway
+    const temp_path = `${output_path}.part`;
 
     try {
-        await utils.fetchFile(download_url, output_path, `${youtubedl_fork} ${new_version}`);
-        fs.chmod(output_path, 0o777);
+        await utils.fetchFile(download_url, temp_path, `${youtubedl_fork} ${new_version}`);
+        await fs.chmod(temp_path, 0o755);
+        await fs.move(temp_path, output_path, {overwrite: true});
 
         updateDetailsJSON(new_version, youtubedl_fork, output_path);
     } catch (e) {
         logger.error(`Failed to download new ${youtubedl_fork} version: ${new_version}`);
         logger.error(e);
+        await fs.remove(temp_path).catch(() => {});
         return;
     }
 }
