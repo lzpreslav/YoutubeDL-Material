@@ -79,26 +79,30 @@ exports.killYoutubeDLProcess = async (child_process) => {
     kill(child_process.pid, 'SIGKILL');
 }
 
+exports.binaryExists = (youtubedl_fork = config_api.getConfigItem('ytdl_default_downloader')) => {
+    return fs.existsSync(getYoutubeDLPath(youtubedl_fork));
+}
+
 exports.checkForYoutubeDLUpdate = async () => {
     const selected_fork = config_api.getConfigItem('ytdl_default_downloader');
     const output_file_path = getYoutubeDLPath();
-    // get current version
-    let current_app_details_exists = fs.existsSync(CONSTS.DETAILS_BIN_PATH);
-    if (!current_app_details_exists[selected_fork]) {
-        logger.warn(`Failed to get youtube-dl binary details at location '${CONSTS.DETAILS_BIN_PATH}'. Generating file...`);
+    // get current version, details are keyed by fork so each one keeps its own version
+    const current_app_details = fs.existsSync(CONSTS.DETAILS_BIN_PATH) ? fs.readJSONSync(CONSTS.DETAILS_BIN_PATH) : {};
+    if (!current_app_details[selected_fork]) {
+        logger.warn(`Failed to get ${selected_fork} binary details at location '${CONSTS.DETAILS_BIN_PATH}'. Generating file...`);
         updateDetailsJSON(CONSTS.OUTDATED_YOUTUBEDL_VERSION, selected_fork, output_file_path);
     }
-    const current_app_details = JSON.parse(fs.readFileSync(CONSTS.DETAILS_BIN_PATH));
-    const current_version = current_app_details[selected_fork]['version'];
-    const current_fork = current_app_details[selected_fork]['downloader'];
+    const current_version = current_app_details[selected_fork] ? current_app_details[selected_fork]['version'] : null;
 
     const latest_version = await exports.getLatestUpdateVersion(selected_fork);
-    // if the binary does not exist, or default_downloader doesn't match existing fork, or if the fork has been updated, redownload
-    // TODO: don't redownload if fork already exists
-    if (!fs.existsSync(output_file_path) || current_fork !== selected_fork || !current_version || current_version !== latest_version) {
-        logger.info(`Updating ${selected_fork} binary to '${output_file_path}', downloading...`);
-        await exports.updateYoutubeDL(latest_version);
-    }
+    // keep running the binary we have rather than redownloading blindly when the version check fails
+    if (!latest_version) return;
+
+    // if the binary does not exist, or if the fork has been updated, redownload
+    if (fs.existsSync(output_file_path) && current_version === latest_version) return;
+
+    logger.info(`Updating ${selected_fork} binary to '${output_file_path}', downloading...`);
+    await exports.updateYoutubeDL(latest_version);
 }
 
 exports.updateYoutubeDL = async (latest_update_version, custom_output_path = null) => {

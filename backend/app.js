@@ -404,6 +404,14 @@ function generateEnvVarConfigItem(key) {
 
 async function startYoutubeDL() {
     // auto update youtube-dl
+    // the check hits the network, so only hold up the server when there's no binary to run yet
+    if (youtubedl_api.binaryExists()) {
+        youtubedl_api.checkForYoutubeDLUpdate().catch(err => {
+            logger.error('Failed to check for a youtube-dl update.');
+            logger.error(err);
+        });
+        return;
+    }
     await youtubedl_api.checkForYoutubeDLUpdate();
 }
 
