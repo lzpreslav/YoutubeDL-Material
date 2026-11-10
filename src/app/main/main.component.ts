@@ -1,12 +1,11 @@
-import { Component, OnInit, ElementRef, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy } from '@angular/core';
 import {PostsService} from '../posts.services';
-import { Subject, fromEvent } from 'rxjs';
-import { debounceTime, filter, map, switchAll, tap } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 import {UntypedFormControl, Validators} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { saveAs } from 'file-saver';
-import { YoutubeSearchService, Result } from '../youtube-search.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Platform } from '@angular/cdk/platform';
 import { ArgModifierDialogComponent } from 'app/dialogs/arg-modifier-dialog/arg-modifier-dialog.component';
@@ -61,13 +60,6 @@ export class MainComponent implements OnInit {
   // cache
   cachedAvailableFormats = {};
   cachedFileManagerEnabled = localStorage.getItem('cached_filemanager_enabled') === 'true';
-
-  // youtube api
-  youtubeSearchEnabled = false;
-  youtubeAPIKey = null;
-  results_loading = false;
-  results_showing = true;
-  results = [];
 
   playlists = {'audio': [], 'video': []};
   playlist_thumbnails = {};
@@ -164,7 +156,6 @@ export class MainComponent implements OnInit {
   selectedQuality: string | unknown = '';
   formats_loading = false;
 
-  @ViewChild('urlinput', { read: ElementRef }) urlInput: ElementRef;
   @ViewChild('recentVideos') recentVideos: RecentVideosComponent;
   last_valid_url = '';
   last_url_check = 0;
@@ -174,7 +165,7 @@ export class MainComponent implements OnInit {
 
   interval_id = null;
 
-  constructor(public postsService: PostsService, private youtubeSearch: YoutubeSearchService, public snackBar: MatSnackBar,
+  constructor(public postsService: PostsService, public snackBar: MatSnackBar,
     private router: Router, public dialog: MatDialog, private platform: Platform, private route: ActivatedRoute) {
     this.audioOnly = false;
   }
@@ -193,9 +184,6 @@ export class MainComponent implements OnInit {
     this.downloadOnlyMode = this.postsService.config['Extra']['download_only_mode'];
     this.forceAutoplay = this.postsService.config['Extra']['force_autoplay'];
     this.globalCustomArgs = this.postsService.config['Downloader']['custom_args'];
-    this.youtubeSearchEnabled = this.postsService.config['API'] && this.postsService.config['API']['use_youtube_API'] &&
-        this.postsService.config['API']['youtube_API_key'];
-    this.youtubeAPIKey = this.youtubeSearchEnabled ? this.postsService.config['API']['youtube_API_key'] : null;
     this.allowQualitySelect = this.postsService.config['Extra']['allow_quality_select'];
     this.allowAdvancedDownload = this.postsService.config['Advanced']['allow_advanced_download']
                                   && this.postsService.hasPermission('advanced_download');
@@ -291,13 +279,6 @@ export class MainComponent implements OnInit {
       .subscribe((should_simulate) => {
         if (should_simulate) this.getSimulatedOutput();
     });
-  }
-
-  ngAfterViewInit(): void {
-    if (this.youtubeSearchEnabled && this.youtubeAPIKey) {
-      this.youtubeSearch.initializeAPI(this.youtubeAPIKey);
-      this.attachToInput();
-    }
   }
 
   ngOnDestroy(): void {
@@ -478,33 +459,8 @@ export class MainComponent implements OnInit {
 
   }
 
-  clearInput(): void {
-    this.url = '';
-    this.results_showing = false;
-  }
-
-  onInputBlur(): void {
-    this.results_showing = false;
-  }
-
-  visitURL(url: string): void {
-    window.open(url);
-  }
-
-  useURL(url: string): void {
-    this.results_showing = false;
-    this.url = url;
-  }
-
-  inputChanged(new_val: string): void {
+  inputChanged(): void {
     this.selectedQuality = '';
-    if (new_val === '' || !new_val) {
-      this.results_showing = false;
-    } else {
-      if (this.ValidURL(new_val)) {
-        this.results_showing = false;
-      }
-    }
   }
 
   // checks if url is a valid URL
@@ -608,35 +564,6 @@ export class MainComponent implements OnInit {
     this.cachedAvailableFormats[url]['formats_loading'] = false;
     this.cachedAvailableFormats[url]['formats_failed'] = true;
     console.error('Could not load formats for url ' + url);
-  }
-
-  attachToInput(): void {
-    fromEvent(this.urlInput.nativeElement, 'keyup').pipe(
-      map((e: any) => e.target.value),           // extract the value of input
-      filter((text: string) => text.length > 1), // filter out if empty
-      debounceTime(250),                         // only once every 250ms
-      tap(() => this.results_loading = true),    // enable loading
-      map((query: string) => this.youtubeSearch.search(query)),
-      switchAll()                                // act on the return of the search
-    ).subscribe(
-        (results: Result[]) => {
-          this.results_loading = false;
-          if (this.url !== '' && results && results.length > 0) {
-            this.results = results;
-            this.results_showing = true;
-          } else {
-            this.results_showing = false;
-          }
-        },
-        (err: any) => {
-          console.log(err)
-          this.results_loading = false;
-          this.results_showing = false;
-        },
-        () => { // on completion
-          this.results_loading = false;
-        }
-      );
   }
 
   argsChanged(): void {

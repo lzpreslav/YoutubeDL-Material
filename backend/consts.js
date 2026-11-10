@@ -106,14 +106,6 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_api_key',
         'path': 'YoutubeDLMaterial.API.API_key'
     },
-    'ytdl_use_youtube_api': {
-        'key': 'ytdl_use_youtube_api',
-        'path': 'YoutubeDLMaterial.API.use_youtube_API'
-    },
-    'ytdl_youtube_api_key': {
-        'key': 'ytdl_youtube_api_key',
-        'path': 'YoutubeDLMaterial.API.youtube_API_key'
-    },
     'ytdl_twitch_auto_download_chat': {
         'key': 'ytdl_twitch_auto_download_chat',
         'path': 'YoutubeDLMaterial.API.twitch_auto_download_chat'

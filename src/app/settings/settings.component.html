@@ -267,16 +267,6 @@
       @if (new_config) {
         <div class="container-fluid">
           <div class="row">
-            <div class="col-12 mt-3">
-              <mat-checkbox color="accent" [(ngModel)]="new_config['API']['use_youtube_API']"><ng-container i18n="Use YouTube API setting">Use YouTube API</ng-container></mat-checkbox>
-            </div>
-            <div class="col-12 mb-2">
-              <mat-form-field class="text-field" color="accent">
-                <mat-label i18n="Youtube API Key">Youtube API Key</mat-label>
-                <input [disabled]="!new_config['API']['use_youtube_API']" [(ngModel)]="new_config['API']['youtube_API_key']" matInput required>
-                <mat-hint><a target="_blank" href="https://developers.google.com/youtube/v3/getting-started"><ng-container i18n="Youtube API Key setting hint">Generating a key is easy!</ng-container></a></mat-hint>
-              </mat-form-field>
-            </div>
             <div class="col-12 mt-1">
               <mat-checkbox color="accent" [(ngModel)]="new_config['API']['twitch_auto_download_chat']"><ng-container i18n="Auto download Twitch Chat setting">Auto-download Twitch Chat</ng-container></mat-checkbox>
             </div>

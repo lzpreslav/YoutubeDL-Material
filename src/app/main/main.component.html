@@ -8,9 +8,8 @@
             <div class="row">
               <div [ngClass]="allowQualitySelect ? 'col-sm-9' : null" class="col-12">
                 <mat-form-field color="accent" class="example-full-width">
-                  <textarea class="url-input" cdkTextareaAutosize cdkAutosizeMinRows="1" wrap="off" matInput (ngModelChange)="inputChanged($event)" [(ngModel)]="url" [placeholder]="'URL' + (youtubeSearchEnabled ? ' or search' : '')" type="url" name="url" #urlinput></textarea>
+                  <textarea class="url-input" cdkTextareaAutosize cdkAutosizeMinRows="1" wrap="off" matInput (ngModelChange)="inputChanged()" [(ngModel)]="url" placeholder="URL" type="url" name="url"></textarea>
                 </mat-form-field>
-                <!--<button type="button" class="input-clear-button" mat-icon-button (click)="clearInput()"><mat-icon>clear</mat-icon></button>-->
               </div>
               @if (allowQualitySelect) {
                 <div class="col-7 col-sm-3">
@@ -51,30 +50,6 @@
               }
             </div>
           </div>
-          @if (results_showing) {
-            <div class="results-div">
-              @for (result of results; track result; let i = $index) {
-                <span>
-                  <mat-card appearance="outlined" class="result-card mat-elevation-z7" [ngClass]="[(i === 0 && results.length > 1) ? 'first-result-card' : '', ((i === results.length-1) && results.length > 1) ? 'last-result-card' : '', (results.length === 1) ? 'only-result-card' : '']">
-                    <div class="search-card-title">
-                      {{result.title}}
-                    </div>
-                    <div style="font-size: 12px; margin-bottom: 10px;">
-                      {{result.uploaded}}
-                    </div>
-                    <button mat-flat-button color="primary" style="float: left;" (click)="useURL(result.videoUrl)">
-                      <ng-container i18n="YT search Use URL button for searched video">Use URL</ng-container>
-                    </button>
-                    <button mat-stroked-button color="primary" (click)="visitURL(result.videoUrl)" style="float: right">
-                      <ng-container i18n="YT search View button for searched video">
-                                        View
-                                    </ng-container>
-                    </button>
-                  </mat-card>
-                </span>
-              }
-            </div>
-          }
         </form>
         <br/>
         <mat-checkbox [disabled]="autoplay && !!current_download" (change)="videoModeChanged($event)" [(ngModel)]="audioOnly" style="float: left; margin-top: -12px; margin-left: 4px;">
