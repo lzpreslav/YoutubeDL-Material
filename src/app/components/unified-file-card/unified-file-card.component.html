@@ -44,14 +44,19 @@
       @if (file_obj.sub_id) {
         <button (click)="navigateToSubscription()" mat-menu-item><mat-icon>{{file_obj.isAudio ? 'library_music' : 'video_library'}}</mat-icon>&nbsp;<ng-container i18n="Go to subscription menu item">Go to subscription</ng-container></button>
       }
-      <button [disabled]="!availablePlaylists || availablePlaylists.length === 0" [matMenuTriggerFor]="addtoplaylist" mat-menu-item><mat-icon>playlist_add</mat-icon>&nbsp;<ng-container i18n="Add to playlist menu item">Add to playlist</ng-container></button>
-      <mat-menu #addtoplaylist="matMenu">
-        @for (playlist of availablePlaylists; track playlist) {
-          @if ((playlist.type === 'audio') === file_obj.isAudio) {
-            <button [disabled]="$safeNavigationMigration(playlist.uids?.includes(file_obj.uid))" (click)="emitAddFileToPlaylist(playlist.id)" mat-menu-item>{{playlist.name}}</button>
+      @if (enable_custom_playlists) {
+        <button [disabled]="availablePlaylists?.length === 0" [matMenuTriggerFor]="addtoplaylist" (menuOpened)="loadPlaylists.emit()" mat-menu-item><mat-icon>playlist_add</mat-icon>&nbsp;<ng-container i18n="Add to playlist menu item">Add to playlist</ng-container></button>
+        <mat-menu #addtoplaylist="matMenu">
+          @if (!availablePlaylists) {
+            <button disabled mat-menu-item><ng-container i18n="Loading playlists menu item">Loading...</ng-container></button>
           }
-        }
-      </mat-menu>
+          @for (playlist of availablePlaylists; track playlist) {
+            @if ((playlist.type === 'audio') === file_obj.isAudio) {
+              <button [disabled]="$safeNavigationMigration(playlist.uids?.includes(file_obj.uid))" (click)="emitAddFileToPlaylist(playlist.id)" mat-menu-item>{{playlist.name}}</button>
+            }
+          }
+        </mat-menu>
+      }
       <mat-divider></mat-divider>
       @if (file_obj.sub_id) {
         <button (click)="emitDeleteFile()" mat-menu-item><mat-icon>restore</mat-icon><ng-container i18n="Delete and redownload subscription video button">Delete and redownload</ng-container></button>
