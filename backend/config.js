@@ -217,6 +217,7 @@ const DEFAULT_CONFIG = {
         "download_only_mode": false,
         "force_autoplay": false,
         "enable_hover_preview": true,
+        "enable_custom_playlists": true,
         "enable_downloads_manager": true,
         "allow_playlist_categorization": true,
         "enable_notifications": true,

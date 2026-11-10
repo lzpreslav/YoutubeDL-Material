@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { DatabaseFile, FileType, FileTypeFilter, Sort } from '../../../api-types';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatChipListboxChange } from '@angular/material/chips';
 import { MatSelectionListChange } from '@angular/material/list';
@@ -74,6 +74,7 @@ export class RecentVideosComponent implements OnInit {
   sortProperty = 'registered';
   
   playlists = null;
+  playlists_loading = false;
 
   @ViewChild('paginator') paginator: MatPaginator
 
@@ -117,7 +118,6 @@ export class RecentVideosComponent implements OnInit {
 
     this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.getAllFiles();
-      this.getAllPlaylists();
     });
 
     this.postsService.files_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
@@ -128,7 +128,7 @@ export class RecentVideosComponent implements OnInit {
 
     this.postsService.playlists_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
       if (changed) {
-        this.getAllPlaylists();
+        this.playlists = null;
       }
     });
 
@@ -148,8 +148,10 @@ export class RecentVideosComponent implements OnInit {
       });
   }
 
-  getAllPlaylists(): void {
-    this.postsService.getPlaylists().subscribe(res => {
+  loadPlaylists(): void {
+    if (this.playlists || this.playlists_loading) return;
+    this.playlists_loading = true;
+    this.postsService.getPlaylists().pipe(finalize(() => this.playlists_loading = false)).subscribe(res => {
       this.playlists = res['playlists'];
     });
   }

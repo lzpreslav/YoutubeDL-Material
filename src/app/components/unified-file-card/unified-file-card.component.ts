@@ -58,12 +58,14 @@ export class UnifiedFileCardComponent implements OnInit {
   @Input() locale = null;
   @Input() baseStreamPath = null;
   @Input() jwtString = null;
+  @Input() enable_custom_playlists = true;
   @Input() availablePlaylists = null;
   @Output() goToFile = new EventEmitter<any>();
   @Output() toggleFavorite = new EventEmitter<DatabaseFile>();
   @Output() goToSubscription = new EventEmitter<any>();
   @Output() deleteFile = new EventEmitter<any>();
   @Output() addFileToPlaylist = new EventEmitter<any>();
+  @Output() loadPlaylists = new EventEmitter<void>();
   @Output() editPlaylist = new EventEmitter<any>();
 
 

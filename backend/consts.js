@@ -72,6 +72,10 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_enable_hover_preview',
         'path': 'YoutubeDLMaterial.Extra.enable_hover_preview'
     },
+    'ytdl_enable_custom_playlists': {
+        'key': 'ytdl_enable_custom_playlists',
+        'path': 'YoutubeDLMaterial.Extra.enable_custom_playlists'
+    },
     'ytdl_enable_downloads_manager': {
         'key': 'ytdl_enable_downloads_manager',
         'path': 'YoutubeDLMaterial.Extra.enable_downloads_manager'
