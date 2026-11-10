@@ -87,10 +87,9 @@ export class NotificationsComponent implements OnInit {
 
   deleteNotification(uid: string): void {
     this.postsService.deleteNotification(uid).subscribe(res => {
-      this.notifications.filter(notification => notification['uid'] !== uid);
+      this.notifications = this.notifications.filter(notification => notification['uid'] !== uid);
       this.filterNotifications();
-      this.notificationCount.emit(this.notifications.length);
-      this.getNotifications();
+      this.notificationCount.emit(this.notifications.filter(notification => !notification.read).length);
     });
   }
 

@@ -1834,9 +1834,10 @@ app.post('/api/setNotificationsToRead', optionalJwt, async (req, res) => {
 });
 
 app.post('/api/deleteNotification', optionalJwt, async (req, res) => {
-    const uid = req.isAuthenticated() ? req.user.uid : null;
+    const uuid = req.isAuthenticated() ? req.user.uid : null;
+    const uid = req.body.uid;
 
-    const success = await db_api.removeRecord('notifications', {uid: uid});
+    const success = await db_api.removeRecord('notifications', {uid: uid, user_uid: uuid});
 
     res.send({success: success});
 });
