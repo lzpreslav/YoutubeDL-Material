@@ -65,7 +65,7 @@ exports.createContainerZipFile = async (file_name, container_file_objs) => {
         const container_file_obj = container_file_objs[i];
         container_files_to_download.push(container_file_obj.path);
     }
-    return await exports.createZipFile(path.join('appdata', file_name + '.zip'), container_files_to_download);
+    return await exports.createZipFile(path.join('appdata', path.basename(file_name) + '.zip'), container_files_to_download);
 }
 
 exports.createZipFile = async (zip_file_path, file_paths) => {

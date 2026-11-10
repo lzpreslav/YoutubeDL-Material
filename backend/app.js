@@ -666,9 +666,11 @@ app.post('/api/getAllFiles', optionalJwt, async function (req, res) {
     });
 });
 
+const EDITABLE_FILE_FIELDS = ['title', 'url', 'uploader', 'thumbnailPath', 'thumbnailURL', 'category', 'upload_date', 'favorite'];
+
 app.post('/api/updateFile', optionalJwt, async function (req, res) {
     const uid = req.body.uid;
-    const change_obj = req.body.change_obj;
+    const change_obj = Object.fromEntries(Object.entries(req.body.change_obj || {}).filter(([key]) => EDITABLE_FILE_FIELDS.includes(key)));
 
     const file = await db_api.updateRecord('files', {uid: uid}, change_obj);
 
@@ -712,11 +714,30 @@ app.post('/api/updateConcurrentStream', optionalJwt, async (req, res) => {
     res.send({stream: concurrentStreams[uid]})
 });
 
+const isSafePathSegment = segment => typeof segment === 'string' && segment !== '' && segment !== '.' && segment !== '..' && path.basename(segment) === segment && !segment.includes('\\');
+
+async function validateTwitchChatRequest(req, res) {
+    const {id, type, sub} = req.body;
+    if (!isSafePathSegment(id) || !['audio', 'video'].includes(type)) {
+        res.sendStatus(400);
+        return null;
+    }
+    if (!sub) return {sub: null};
+    const db_sub = typeof sub.id === 'string' ? await db_api.getRecord('subscriptions', {id: sub.id}) : null;
+    if (!db_sub) {
+        res.sendStatus(400);
+        return null;
+    }
+    return {sub: db_sub};
+}
+
 app.post('/api/getFullTwitchChat', optionalJwt, async (req, res) => {
+    const validated = await validateTwitchChatRequest(req, res);
+    if (!validated) return;
     var id = req.body.id;
     var type = req.body.type;
     var uuid = req.body.uuid;
-    var sub = req.body.sub;
+    var sub = validated.sub;
     var user_uid = null;
 
     if (req.isAuthenticated()) user_uid = req.user.uid;
@@ -729,11 +750,13 @@ app.post('/api/getFullTwitchChat', optionalJwt, async (req, res) => {
 });
 
 app.post('/api/downloadTwitchChatByVODID', optionalJwt, async (req, res) => {
+    const validated = await validateTwitchChatRequest(req, res);
+    if (!validated) return;
     var id = req.body.id;
     var type = req.body.type;
     var vodId = req.body.vodId;
     var uuid = req.body.uuid;
-    var sub = req.body.sub;
+    var sub = validated.sub;
     var user_uid = null;
 
     if (req.isAuthenticated()) user_uid = req.user.uid;
@@ -1405,9 +1428,28 @@ app.get('/api/stream', optionalJwt, async (req, res) => {
     }
 });
 
+const THUMBNAIL_EXTENSIONS = ['.webp', '.jpg', '.jpeg', '.png'];
+const MEDIA_ROOT_CONFIG_KEYS = ['ytdl_audio_folder_path', 'ytdl_video_folder_path', 'ytdl_subscriptions_base_path', 'ytdl_users_base_path'];
+
+async function resolveThumbnailPath(file_path) {
+    if (!THUMBNAIL_EXTENSIONS.includes(path.extname(file_path).toLowerCase())) return null;
+    const resolved_path = path.resolve(__dirname, file_path);
+    for (const key of MEDIA_ROOT_CONFIG_KEYS) {
+        const root = config_api.getConfigItem(key);
+        if (!root) continue;
+        const resolved_root = path.resolve(__dirname, root);
+        if (!resolved_path.startsWith(resolved_root + path.sep)) continue;
+
+        const real_root = await fs.realpath(resolved_root).catch(() => null);
+        const real_path = await fs.realpath(resolved_path).catch(() => null);
+        if (real_root && real_path && real_path.startsWith(real_root + path.sep)) return real_path;
+    }
+    return null;
+}
+
 app.get('/api/thumbnail/:path', optionalJwt, async (req, res) => {
-    let file_path = decodeURIComponent(req.params.path);
-    if (fs.existsSync(file_path)) path.isAbsolute(file_path) ? res.sendFile(file_path) : res.sendFile(path.join(__dirname, file_path));
+    const file_path = await resolveThumbnailPath(decodeURIComponent(req.params.path));
+    if (file_path) res.sendFile(file_path);
     else res.sendStatus(404);
 });
 
@@ -1603,6 +1645,10 @@ app.post('/api/getDBBackups', optionalJwt, async (req, res) => {
 
 app.post('/api/restoreDBBackup', optionalJwt, async (req, res) => {
     const file_name = req.body.file_name;
+    if (!isSafePathSegment(file_name) || !file_name.endsWith('.bak') || !(await fs.pathExists(path.join('appdata', 'db_backup', file_name)))) {
+        res.send({success: false});
+        return;
+    }
 
     const success = await db_api.restoreDB(file_name);
 
