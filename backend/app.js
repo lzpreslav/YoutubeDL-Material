@@ -1819,7 +1819,14 @@ app.post('/api/changeRolePermissions', optionalJwt, async (req, res) => {
 app.post('/api/getNotifications', optionalJwt, async (req, res) => {
     const uuid = req.isAuthenticated() ? req.user.uid : null;
 
-    const notifications = await db_api.getRecords('notifications', {user_uid: uuid});
+    if (req.body.count_only) {
+        const unread_count = await db_api.getRecords('notifications', {user_uid: uuid, read: false}, true);
+        res.send({unread_count: unread_count});
+        return;
+    }
+
+    const limit = Number.isInteger(req.body.limit) && req.body.limit > 0 ? req.body.limit : null;
+    const notifications = await db_api.getRecords('notifications', {user_uid: uuid}, false, {by: 'timestamp', order: -1}, limit ? [0, limit] : null);
 
     res.send({notifications: notifications});
 });

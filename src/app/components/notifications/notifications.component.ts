@@ -5,6 +5,8 @@ import { Notification, NotificationType } from 'api-types';
 import { NotificationAction } from 'api-types/models/NotificationAction';
 import { MatChipListboxChange } from '@angular/material/chips';
 
+const NOTIFICATIONS_LIMIT = 100;
+
 @Component({
     selector: 'app-notifications',
     templateUrl: './notifications.component.html',
@@ -40,20 +42,15 @@ export class NotificationsComponent implements OnInit {
   constructor(public postsService: PostsService, private router: Router, private elRef: ElementRef) { }
 
   ngOnInit(): void {
-    // wait for init
-    if (this.postsService.initialized) {
-      this.getNotifications();
-    } else {
-      this.postsService.service_initialized.subscribe(init => {
-        if (init) {
-          this.getNotifications();
-        }
+    this.postsService.whenInitialized().subscribe(() => {
+      this.postsService.getUnreadNotificationCount().subscribe(res => {
+        this.notificationCount.emit(res['unread_count']);
       });
-    }
+    });
   }
 
   getNotifications(): void {
-    this.postsService.getNotifications().subscribe(res => {
+    this.postsService.getNotifications(NOTIFICATIONS_LIMIT).subscribe(res => {
       this.notifications = res['notifications'];
       this.notifications.sort((a, b) => b.timestamp - a.timestamp);
       this.notificationCount.emit(this.notifications.filter(notification => !notification.read).length);
@@ -97,15 +94,14 @@ export class NotificationsComponent implements OnInit {
     this.postsService.deleteAllNotifications().subscribe(res => {
       this.notifications = [];
       this.filtered_notifications = [];
-      this.getNotifications();
     });
     this.notificationCount.emit(0);
   }
 
   setNotificationsToRead(): void {
-    const uids = this.notifications.map(notification => notification.uid);
+    const uids = (this.notifications ?? []).map(notification => notification.uid);
     this.postsService.setNotificationsToRead(uids).subscribe(res => {
-      this.getNotifications();
+      this.notifications?.forEach(notification => notification.read = true);
     });
     this.notificationCount.emit(0);
   }

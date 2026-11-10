@@ -3155,6 +3155,15 @@ components:
           type: array
           items:
             type: string
+    GetNotificationsRequest:
+      type: object
+      properties:
+        count_only:
+          type: boolean
+          description: Only return the number of unread notifications
+        limit:
+          type: integer
+          description: Maximum number of notifications to return, newest first
     GetNotificationsResponse:
       type: object
       properties:
@@ -3162,6 +3171,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Notification'
+        unread_count:
+          type: integer
+          description: Number of unread notifications, returned instead of notifications when count_only is set
   securitySchemes:
     Auth query parameter:
       name: apiKey

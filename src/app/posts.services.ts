@@ -99,6 +99,7 @@ import {
     GetAllTasksResponse,
     DeleteNotificationRequest,
     SetNotificationsToReadRequest,
+    GetNotificationsRequest,
     GetNotificationsResponse,
     UpdateTaskOptionsRequest,
     User,
@@ -861,8 +862,15 @@ export class PostsService  {
 
     // notifications
 
-    getNotifications(): Observable<GetNotificationsResponse> {
-        return this.http.post<GetNotificationsResponse>(this.path + 'getNotifications', {},
+    getNotifications(limit: number = null): Observable<GetNotificationsResponse> {
+        const body: GetNotificationsRequest = {limit: limit};
+        return this.http.post<GetNotificationsResponse>(this.path + 'getNotifications', body,
+                                                                    this.httpOptions);
+    }
+
+    getUnreadNotificationCount(): Observable<GetNotificationsResponse> {
+        const body: GetNotificationsRequest = {count_only: true};
+        return this.http.post<GetNotificationsResponse>(this.path + 'getNotifications', body,
                                                                     this.httpOptions);
     }
 
