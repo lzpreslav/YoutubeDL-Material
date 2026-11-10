@@ -30,7 +30,7 @@
     "compression": "^1.7.4",
     "config": "^3.2.3",
     "execa": "^5.1.1",
-    "express": "^4.22.2",
+    "express": "^4.22.3",
     "express-session": "^1.17.3",
     "feed": "^4.2.2",
     "fluent-ffmpeg": "^2.1.2",
@@ -62,11 +62,14 @@
     "xmlbuilder2": "^4.0.3"
   },
   "devDependencies": {
-    "mocha": "^11.0.0"
+    "mocha": "^12.0.3"
   },
   "overrides": {
     "gotify": {
       "got": "^11.8.6"
+    },
+    "archiver": {
+      "readdir-glob": "^4.0.0"
     }
   }
 }

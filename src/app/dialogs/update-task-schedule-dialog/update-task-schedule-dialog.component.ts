@@ -1,12 +1,14 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Schedule, Task } from 'api-types';
 import { PostsService } from 'app/posts.services';
 
 @Component({
-  selector: 'app-update-task-schedule-dialog',
-  templateUrl: './update-task-schedule-dialog.component.html',
-  styleUrls: ['./update-task-schedule-dialog.component.scss']
+    selector: 'app-update-task-schedule-dialog',
+    templateUrl: './update-task-schedule-dialog.component.html',
+    styleUrls: ['./update-task-schedule-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class UpdateTaskScheduleDialogComponent implements OnInit {
 

@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import { MatDialogRef } from '@angular/material/dialog';
 
 @Component({
-  selector: 'app-set-default-admin-dialog',
-  templateUrl: './set-default-admin-dialog.component.html',
-  styleUrls: ['./set-default-admin-dialog.component.scss']
+    selector: 'app-set-default-admin-dialog',
+    templateUrl: './set-default-admin-dialog.component.html',
+    styleUrls: ['./set-default-admin-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class SetDefaultAdminDialogComponent implements OnInit {
   creating = false;

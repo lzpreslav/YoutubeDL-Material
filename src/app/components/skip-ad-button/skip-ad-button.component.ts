@@ -1,11 +1,13 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import CryptoJS from 'crypto-js';
 
 @Component({
-  selector: 'app-skip-ad-button',
-  templateUrl: './skip-ad-button.component.html',
-  styleUrls: ['./skip-ad-button.component.scss']
+    selector: 'app-skip-ad-button',
+    templateUrl: './skip-ad-button.component.html',
+    styleUrls: ['./skip-ad-button.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class SkipAdButtonComponent implements OnInit {
 

@@ -1,12 +1,14 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Task, TaskType } from 'api-types';
 import { PostsService } from 'app/posts.services';
 
 @Component({
-  selector: 'app-task-settings',
-  templateUrl: './task-settings.component.html',
-  styleUrls: ['./task-settings.component.scss']
+    selector: 'app-task-settings',
+    templateUrl: './task-settings.component.html',
+    styleUrls: ['./task-settings.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class TaskSettingsComponent {
   task_key: TaskType;

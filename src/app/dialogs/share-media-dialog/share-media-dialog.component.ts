@@ -1,13 +1,15 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PostsService } from 'app/posts.services';
 
 @Component({
-  selector: 'app-share-media-dialog',
-  templateUrl: './share-media-dialog.component.html',
-  styleUrls: ['./share-media-dialog.component.scss']
+    selector: 'app-share-media-dialog',
+    templateUrl: './share-media-dialog.component.html',
+    styleUrls: ['./share-media-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class ShareMediaDialogComponent implements OnInit {
 

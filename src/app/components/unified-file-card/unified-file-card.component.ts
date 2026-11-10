@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ViewChild } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { VideoInfoDialogComponent } from 'app/dialogs/video-info-dialog/video-info-dialog.component';
 import { MatMenuTrigger } from '@angular/material/menu';
@@ -19,9 +19,11 @@ registerLocaleData(localeZH);
 registerLocaleData(localeNB);
 
 @Component({
-  selector: 'app-unified-file-card',
-  templateUrl: './unified-file-card.component.html',
-  styleUrls: ['./unified-file-card.component.scss']
+    selector: 'app-unified-file-card',
+    templateUrl: './unified-file-card.component.html',
+    styleUrls: ['./unified-file-card.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class UnifiedFileCardComponent implements OnInit {
 

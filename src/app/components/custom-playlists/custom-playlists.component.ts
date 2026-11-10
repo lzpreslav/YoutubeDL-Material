@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -6,9 +6,11 @@ import { CreatePlaylistComponent } from 'app/create-playlist/create-playlist.com
 import { Playlist } from 'api-types';
 
 @Component({
-  selector: 'app-custom-playlists',
-  templateUrl: './custom-playlists.component.html',
-  styleUrls: ['./custom-playlists.component.scss']
+    selector: 'app-custom-playlists',
+    templateUrl: './custom-playlists.component.html',
+    styleUrls: ['./custom-playlists.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class CustomPlaylistsComponent implements OnInit {
 
