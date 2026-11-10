@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {PostsService} from '../posts.services';
-import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { EMPTY, Observable, Subject } from 'rxjs';
+import { debounceTime, filter, tap } from 'rxjs/operators';
+import { Poller } from 'app/poller';
 import {UntypedFormControl, Validators} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -163,7 +165,10 @@ export class MainComponent implements OnInit {
   argsChangedSubject: Subject<boolean> = new Subject<boolean>();
   simulatedOutput = '';
 
-  interval_id = null;
+  download_poller = new Poller(() => this.getCurrentDownload(), () => 1000);
+  config_loaded = false;
+
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(public postsService: PostsService, public snackBar: MatSnackBar,
     private router: Router, public dialog: MatDialog, private platform: Platform, private route: ActivatedRoute) {
@@ -224,34 +229,21 @@ export class MainComponent implements OnInit {
       this.getSimulatedOutput();
     }
 
-    // get downloads routine
-    if (this.interval_id) { clearInterval(this.interval_id) }
-    this.interval_id = setInterval(() => {
-      if (this.current_download) {
-        this.getCurrentDownload();
-      }
-    }, 1000);
-
     return true;
   }
 
   // app initialization.
   ngOnInit(): void {
-    if (this.postsService.initialized) {
-      this.configLoad();
-    } else {
-      this.postsService.service_initialized.subscribe(init => {
-        if (init) {
-          this.configLoad();
-        }
-      });
-    }
-
-    this.postsService.config_reloaded.subscribe(changed => {
-      if (changed) {
+    this.postsService.config_reloaded.pipe(filter(reloaded => reloaded), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.config_loaded) {
         this.loadConfig();
+      } else {
+        this.config_loaded = true;
+        this.configLoad();
       }
     });
+
+    this.download_poller.start();
 
     this.iOS = this.platform.IOS;
 
@@ -282,7 +274,7 @@ export class MainComponent implements OnInit {
   }
 
   ngOnDestroy(): void {
-    if (this.interval_id) { clearInterval(this.interval_id) }
+    this.download_poller.stop();
   }
 
   // download helpers
@@ -294,11 +286,7 @@ export class MainComponent implements OnInit {
     } else {
       // if download only mode, just download the file. no redirect
       if (force_view === false && this.downloadOnlyMode && !this.iOS) {
-        if (is_playlist) {
-          this.downloadPlaylist(container['uid']);
-        } else {
-          this.downloadFileFromServer(container as DatabaseFile, type);
-        }
+        if (!is_playlist) this.downloadFileFromServer(container as DatabaseFile, type);
         this.reloadRecentVideos(is_playlist);
       } else {
         localStorage.setItem('player_navigator', this.router.url.split(';')[0]);
@@ -449,14 +437,6 @@ export class MainComponent implements OnInit {
         this.postsService.deleteFile(file.uid).subscribe(() => {});
       }
     });
-  }
-
-  downloadPlaylist(playlist: Playlist): void {
-    this.postsService.downloadPlaylistFromServer(playlist.id).subscribe(res => {
-      const blob: Blob = res;
-      saveAs(blob, playlist.name + '.zip');
-    });
-
   }
 
   inputChanged(): void {
@@ -699,11 +679,11 @@ export class MainComponent implements OnInit {
     });
   }
 
-  getCurrentDownload(): void {
+  getCurrentDownload(): Observable<unknown> {
     if (!this.current_download) {
-      return;
+      return EMPTY;
     }
-    this.postsService.getCurrentDownload(this.current_download['uid']).subscribe(res => {
+    return this.postsService.getCurrentDownload(this.current_download['uid']).pipe(tap(res => {
       if (res['download']) {
         this.current_download = res['download'];
         this.percentDownloaded = this.current_download.percent_complete;
@@ -722,7 +702,7 @@ export class MainComponent implements OnInit {
       } else {
         // console.log('failed to get new download');
       }
-    });
+    }));
   }
 
   reloadRecentVideos(is_playlist = false): void {

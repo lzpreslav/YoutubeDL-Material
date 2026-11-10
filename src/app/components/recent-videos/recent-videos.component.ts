@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { DatabaseFile, FileType, FileTypeFilter, Sort } from '../../../api-types';
@@ -76,6 +77,8 @@ export class RecentVideosComponent implements OnInit {
 
   @ViewChild('paginator') paginator: MatPaginator
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(public postsService: PostsService, private router: Router) {
     // get cached file count
     const sub_id_appendix = this.sub_id ? `_${this.sub_id}` : ''
@@ -112,25 +115,18 @@ export class RecentVideosComponent implements OnInit {
       delete this.fileFilters['video_only'];
     }
 
-    if (this.postsService.initialized) {
+    this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.getAllFiles();
       this.getAllPlaylists();
-    }
-
-    this.postsService.service_initialized.subscribe(init => {
-      if (init) {
-        this.getAllFiles();
-        this.getAllPlaylists();
-      }
     });
 
-    this.postsService.files_changed.subscribe(changed => {
+    this.postsService.files_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
       if (changed) {
         this.getAllFiles();
       }
     });
 
-    this.postsService.playlists_changed.subscribe(changed => {
+    this.postsService.playlists_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
       if (changed) {
         this.getAllPlaylists();
       }
@@ -141,7 +137,7 @@ export class RecentVideosComponent implements OnInit {
     this.selected_data_objs = this.defaultSelected;    
 
     this.searchChangedSubject
-      .pipe(debounceTime(500), distinctUntilChanged()
+      .pipe(debounceTime(500), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef)
       ).subscribe(model => {
         if (model.length > 0) {
           this.search_mode = true;

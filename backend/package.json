@@ -22,7 +22,6 @@
   },
   "homepage": "",
   "dependencies": {
-    "archiver": "^8.0.0",
     "async": "^3.2.3",
     "async-mutex": "^0.4.0",
     "bcryptjs": "^2.4.0",
@@ -67,9 +66,6 @@
   "overrides": {
     "gotify": {
       "got": "^11.8.6"
-    },
-    "archiver": {
-      "readdir-glob": "^4.0.0"
     }
   }
 }

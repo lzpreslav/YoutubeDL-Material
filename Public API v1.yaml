@@ -2158,8 +2158,6 @@ components:
           type: string
         sub_id:
           type: string
-        playlist_id:
-          type: string
         url:
           type: string
         type:

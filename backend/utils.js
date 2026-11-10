@@ -1,7 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
-const { ZipArchive } = require('archiver');
 const fetch = require('node-fetch');
 const ProgressBar = require('progress');
 const winston = require('winston');
@@ -57,42 +56,6 @@ exports.getDownloadedFilesByType = async (basePath, type, full_metadata = false)
         files.push(file_obj);
     }
     return files;
-}
-
-exports.createContainerZipFile = async (file_name, container_file_objs) => {
-    const container_files_to_download = [];
-    for (let i = 0; i < container_file_objs.length; i++) {
-        const container_file_obj = container_file_objs[i];
-        container_files_to_download.push(container_file_obj.path);
-    }
-    return await exports.createZipFile(path.join('appdata', file_name + '.zip'), container_files_to_download);
-}
-
-exports.createZipFile = async (zip_file_path, file_paths) => {
-    let output = fs.createWriteStream(zip_file_path);
-
-    var archive = new ZipArchive({
-        zlib: { level: 9 } // Sets the compression level.
-    });
-
-    archive.on('error', function(err) {
-        logger.error(err);
-        throw err;
-    });
-
-    // pipe archive data to the output file
-    archive.pipe(output);
-
-    for (let file_path of file_paths) {
-        const file_name = path.parse(file_path).base;
-        archive.file(file_path, {name: file_name})
-    }
-
-    await archive.finalize();
-
-    // wait a tiny bit for the zip to reload in fs
-    await exports.wait(100);
-    return zip_file_path;
 }
 
 exports.getJSONMp4 = (name, customPath, openReadPerms = false) => {

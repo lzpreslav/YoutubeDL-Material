@@ -29,6 +29,7 @@ const youtubedl_api = require('./youtube-dl');
 const archive_api = require('./archive');
 const files_api = require('./files');
 const notifications_api = require('./notifications');
+const thumbnails_api = require('./thumbnails');
 
 var app = express();
 
@@ -666,9 +667,11 @@ app.post('/api/getAllFiles', optionalJwt, async function (req, res) {
     });
 });
 
+const EDITABLE_FILE_FIELDS = ['title', 'url', 'uploader', 'thumbnailPath', 'thumbnailURL', 'category', 'upload_date', 'favorite'];
+
 app.post('/api/updateFile', optionalJwt, async function (req, res) {
     const uid = req.body.uid;
-    const change_obj = req.body.change_obj;
+    const change_obj = Object.fromEntries(Object.entries(req.body.change_obj || {}).filter(([key]) => EDITABLE_FILE_FIELDS.includes(key)));
 
     const file = await db_api.updateRecord('files', {uid: uid}, change_obj);
 
@@ -712,11 +715,30 @@ app.post('/api/updateConcurrentStream', optionalJwt, async (req, res) => {
     res.send({stream: concurrentStreams[uid]})
 });
 
+const isSafePathSegment = segment => typeof segment === 'string' && segment !== '' && segment !== '.' && segment !== '..' && path.basename(segment) === segment && !segment.includes('\\');
+
+async function validateTwitchChatRequest(req, res) {
+    const {id, type, sub} = req.body;
+    if (!isSafePathSegment(id) || !['audio', 'video'].includes(type)) {
+        res.sendStatus(400);
+        return null;
+    }
+    if (!sub) return {sub: null};
+    const db_sub = typeof sub.id === 'string' ? await db_api.getRecord('subscriptions', {id: sub.id}) : null;
+    if (!db_sub) {
+        res.sendStatus(400);
+        return null;
+    }
+    return {sub: db_sub};
+}
+
 app.post('/api/getFullTwitchChat', optionalJwt, async (req, res) => {
+    const validated = await validateTwitchChatRequest(req, res);
+    if (!validated) return;
     var id = req.body.id;
     var type = req.body.type;
     var uuid = req.body.uuid;
-    var sub = req.body.sub;
+    var sub = validated.sub;
     var user_uid = null;
 
     if (req.isAuthenticated()) user_uid = req.user.uid;
@@ -729,11 +751,13 @@ app.post('/api/getFullTwitchChat', optionalJwt, async (req, res) => {
 });
 
 app.post('/api/downloadTwitchChatByVODID', optionalJwt, async (req, res) => {
+    const validated = await validateTwitchChatRequest(req, res);
+    if (!validated) return;
     var id = req.body.id;
     var type = req.body.type;
     var vodId = req.body.vodId;
     var uuid = req.body.uuid;
-    var sub = req.body.sub;
+    var sub = validated.sub;
     var user_uid = null;
 
     if (req.isAuthenticated()) user_uid = req.user.uid;
@@ -1210,49 +1234,19 @@ app.post('/api/deleteAllFiles', optionalJwt, async (req, res) => {
 app.post('/api/downloadFileFromServer', optionalJwt, async (req, res) => {
     let uid = req.body.uid;
     let uuid = req.body.uuid;
-    let playlist_id = req.body.playlist_id;
     let sub_id = req.body.sub_id;
-
-    let file_path_to_download = null;
 
     if (!uuid && req.user) uuid = req.user.uid;
 
-    let zip_file_generated = false;
-    if (playlist_id) {
-        zip_file_generated = true;
-        const playlist_files_to_download = [];
-        const playlist = await files_api.getPlaylist(playlist_id, uuid);
-        for (let i = 0; i < playlist['uids'].length; i++) {
-            const playlist_file_uid = playlist['uids'][i];
-            const file_obj = await files_api.getVideo(playlist_file_uid, uuid);
-            playlist_files_to_download.push(file_obj);
-        }
-
-        // generate zip
-        file_path_to_download = await utils.createContainerZipFile(playlist['name'], playlist_files_to_download);
-    } else if (sub_id && !uid) {
-        zip_file_generated = true;
-        const sub = await db_api.getRecord('subscriptions', {id: sub_id});
-        const sub_files_to_download = await db_api.getRecords('files', {sub_id: sub_id});
-
-        // generate zip
-        file_path_to_download = await utils.createContainerZipFile(sub['name'], sub_files_to_download);
-    } else {
-        const file_obj = await files_api.getVideo(uid, uuid, sub_id)
-        file_path_to_download = file_obj.path;
+    const file_obj = await files_api.getVideo(uid, uuid, sub_id);
+    if (!file_obj) {
+        res.sendStatus(404);
+        return;
     }
+    let file_path_to_download = file_obj.path;
     if (!path.isAbsolute(file_path_to_download)) file_path_to_download = path.join(__dirname, file_path_to_download);
     res.sendFile(file_path_to_download, function (err) {
-        if (err) {
-          logger.error(err);
-        } else if (zip_file_generated) {
-          try {
-            // delete generated zip file
-            fs.unlinkSync(file_path_to_download);
-          } catch(e) {
-            logger.error(`Failed to remove file after sending to client: ${file_path_to_download}`);
-          }
-        }
+        if (err) logger.error(err);
     });
 });
 
@@ -1405,13 +1399,54 @@ app.get('/api/stream', optionalJwt, async (req, res) => {
     }
 });
 
+const THUMBNAIL_EXTENSIONS = ['.webp', '.jpg', '.jpeg', '.png'];
+const MEDIA_ROOT_CONFIG_KEYS = ['ytdl_audio_folder_path', 'ytdl_video_folder_path', 'ytdl_subscriptions_base_path', 'ytdl_users_base_path'];
+
+async function resolveThumbnailPath(file_path) {
+    if (!THUMBNAIL_EXTENSIONS.includes(path.extname(file_path).toLowerCase())) return null;
+    const resolved_path = path.resolve(__dirname, file_path);
+    for (const key of MEDIA_ROOT_CONFIG_KEYS) {
+        const root = config_api.getConfigItem(key);
+        if (!root) continue;
+        const resolved_root = path.resolve(__dirname, root);
+        if (!resolved_path.startsWith(resolved_root + path.sep)) continue;
+
+        const real_root = await fs.realpath(resolved_root).catch(() => null);
+        const real_path = await fs.realpath(resolved_path).catch(() => null);
+        if (real_root && real_path && real_path.startsWith(real_root + path.sep)) return real_path;
+    }
+    return null;
+}
+
 app.get('/api/thumbnail/:path', optionalJwt, async (req, res) => {
-    let file_path = decodeURIComponent(req.params.path);
-    if (fs.existsSync(file_path)) path.isAbsolute(file_path) ? res.sendFile(file_path) : res.sendFile(path.join(__dirname, file_path));
-    else res.sendStatus(404);
+    const file_path = await resolveThumbnailPath(decodeURIComponent(req.params.path));
+    if (!file_path) {
+        res.sendStatus(404);
+        return;
+    }
+    const cache_control = 'private, max-age=86400';
+    const resized = req.query.w ? await thumbnails_api.getResizedThumbnail(file_path, parseInt(req.query.w, 10)).catch(() => null) : null;
+    if (resized) {
+        res.set({'Content-Type': 'image/webp', 'Cache-Control': cache_control, 'ETag': resized.etag});
+        res.send(resized.buffer);
+    } else {
+        res.sendFile(file_path, {cacheControl: false, headers: {'Cache-Control': cache_control}});
+    }
 });
 
 // Downloads management
+
+const DOWNLOAD_LIST_OMITTED_FIELDS = ['prefetched_info', 'options', 'args', 'files_to_check_for_progress'];
+
+function summarizeDownload(download) {
+    const summary = {...download};
+    for (const field of DOWNLOAD_LIST_OMITTED_FIELDS) delete summary[field];
+    if (download.container) {
+        const {uid, id, uids} = download.container;
+        summary.container = {uid, id, uids};
+    }
+    return summary;
+}
 
 app.post('/api/downloads', optionalJwt, async (req, res) => {
     const user_uid = req.isAuthenticated() ? req.user.uid : null;
@@ -1420,7 +1455,7 @@ app.post('/api/downloads', optionalJwt, async (req, res) => {
 
     if (uids) downloads = downloads.filter(download => uids.includes(download['uid']));
 
-    res.send({downloads: downloads});
+    res.send({downloads: downloads.map(summarizeDownload)});
 });
 
 app.post('/api/download', optionalJwt, async (req, res) => {
@@ -1603,6 +1638,10 @@ app.post('/api/getDBBackups', optionalJwt, async (req, res) => {
 
 app.post('/api/restoreDBBackup', optionalJwt, async (req, res) => {
     const file_name = req.body.file_name;
+    if (!isSafePathSegment(file_name) || !file_name.endsWith('.bak') || !(await fs.pathExists(path.join('appdata', 'db_backup', file_name)))) {
+        res.send({success: false});
+        return;
+    }
 
     const success = await db_api.restoreDB(file_name);
 
@@ -1875,14 +1914,19 @@ app.use(function(req, res, next) {
         return next();
     }
 
-    let index_path = path.join(__dirname, 'public', 'index.html');
-
-    res.setHeader('Content-Type', 'text/html');
-
-    fs.createReadStream(index_path).pipe(res);
-
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), {headers: {'Cache-Control': 'no-cache'}});
 });
 
 let public_dir = path.join(__dirname, 'public');
 
-app.use(express.static(public_dir));
+const HASHED_ASSET_REGEX = /-[A-Z0-9]{8}\.(js|css|woff2?|ttf|eot|svg)$/;
+
+app.use(express.static(public_dir, {
+    setHeaders: (res, file_path) => {
+        const relative_path = path.relative(public_dir, file_path);
+        const in_build_root = path.dirname(relative_path) === '.' || path.dirname(relative_path) === 'media';
+        if (in_build_root && HASHED_ASSET_REGEX.test(path.basename(file_path))) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    }
+}));

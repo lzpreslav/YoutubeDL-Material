@@ -45,6 +45,7 @@ const subscriptions_api = require('../subscriptions');
 const archive_api = require('../archive');
 const categories_api = require('../categories');
 const files_api = require('../files');
+const thumbnails_api = require('../thumbnails');
 const youtubedl_api = require('../youtube-dl');
 const config_api = require('../config');
 const CONSTS = require('../consts');
@@ -383,37 +384,6 @@ describe('Multi User', async function() {
             await db_api.setVideoProperty(video_to_test, {sharingEnabled: true}, user_to_test);
             const video_obj = await auth_api.getUserVideo(user_to_test, video_to_test, true);
             assert(video_obj);
-        });
-    });
-    describe.skip('Zip generators', function() {
-        it('Playlist zip generator', async function() {
-            const playlist = await files_api.getPlaylist(playlist_to_test, user_to_test);
-            assert(playlist);
-            const playlist_files_to_download = [];
-            for (let i = 0; i < playlist['uids'].length; i++) {
-                const uid = playlist['uids'][i];
-                const playlist_file = await files_api.getVideo(uid, user_to_test);
-                playlist_files_to_download.push(playlist_file);
-            }
-            const zip_path = await utils.createContainerZipFile(playlist, playlist_files_to_download);
-            const zip_exists = fs.pathExistsSync(zip_path);
-            assert(zip_exists);
-            if (zip_exists) fs.unlinkSync(zip_path);
-        });
-
-        it('Subscription zip generator', async function() {
-            const sub = await subscriptions_api.getSubscription(sub_to_test.id, user_to_test);
-            const sub_videos = await db_api.getRecords('files', {sub_id: sub.id});
-            assert(sub);
-            const sub_files_to_download = [];
-            for (let i = 0; i < sub_videos.length; i++) {
-                const sub_file = sub_videos[i];
-                sub_files_to_download.push(sub_file);
-            }
-            const zip_path = await utils.createContainerZipFile(sub, sub_files_to_download);
-            const zip_exists = fs.pathExistsSync(zip_path);
-            assert(zip_exists);
-            if (zip_exists) fs.unlinkSync(zip_path);
         });
     });
     // describe('Video player - subscription', function() {
@@ -971,6 +941,43 @@ describe('Utils', async function() {
             config_api.setConfigItem('ytdl_url', 'https://example.com/ytdlm/');
             assert.strictEqual(utils.getBaseURL(), 'https://example.com/ytdlm');
         });
+    });
+});
+
+describe('Thumbnails', async function() {
+    const thumbnail_dir = path.join('appdata', 'test_thumbnails');
+    const png_path = path.resolve(thumbnail_dir, 'thumbnail.png');
+    const fake_png_path = path.resolve(thumbnail_dir, 'not_an_image.png');
+
+    before(async function() {
+        await fs.ensureDir(thumbnail_dir);
+        await exec(`ffmpeg -nostdin -loglevel error -y -f lavfi -i testsrc=size=1280x720 -frames:v 1 "${png_path}"`);
+        await fs.writeFile(fake_png_path, 'not an image');
+    });
+
+    after(async function() {
+        await fs.remove(thumbnail_dir);
+    });
+
+    it('Resizes to webp', async function() {
+        const resized = await thumbnails_api.getResizedThumbnail(png_path, 200);
+        assert(resized && resized.etag);
+        assert(resized.buffer.toString('ascii', 0, 4) === 'RIFF' && resized.buffer.toString('ascii', 8, 12) === 'WEBP');
+        assert(resized.buffer.length < (await fs.stat(png_path)).size);
+    });
+
+    it('Returns the cached entry', async function() {
+        const first = await thumbnails_api.getResizedThumbnail(png_path, 400);
+        const second = await thumbnails_api.getResizedThumbnail(png_path, 400);
+        assert(first && first === second);
+    });
+
+    it('Rejects widths that are not allowed', async function() {
+        assert(await thumbnails_api.getResizedThumbnail(png_path, 999) === null);
+    });
+
+    it('Rejects files that are not images', async function() {
+        assert(await thumbnails_api.getResizedThumbnail(fake_png_path, 200) === null);
     });
 });
 

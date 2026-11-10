@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,18 +17,17 @@ export class CustomPlaylistsComponent implements OnInit {
 
   playlists = null;
   playlists_received = false;
-  downloading_content = {'video': {}, 'audio': {}};
+
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(public postsService: PostsService, private router: Router, private dialog: MatDialog) { }
 
   ngOnInit(): void {
-    this.postsService.service_initialized.subscribe(init => {
-      if (init) {
-        this.getAllPlaylists();
-      }
+    this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.getAllPlaylists();
     });
 
-    this.postsService.playlists_changed.subscribe(changed => {
+    this.postsService.playlists_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
       if (changed) {
         this.getAllPlaylists();
       }
@@ -67,29 +67,15 @@ export class CustomPlaylistsComponent implements OnInit {
     const playlistID = playlist.id;
 
     if (playlist) {
-      if (this.postsService.config['Extra']['download_only_mode']) {
-        this.downloadPlaylist(playlist.id, playlist.name);
-      } else {
-        localStorage.setItem('player_navigator', this.router.url);
-        const routeParams = {playlist_id: playlistID};
-        if (playlist.auto) { routeParams['auto'] =  playlist.auto; }
-        this.router.navigate(['/player', routeParams]);
-      }
+      localStorage.setItem('player_navigator', this.router.url);
+      const routeParams = {playlist_id: playlistID};
+      if (playlist.auto) { routeParams['auto'] =  playlist.auto; }
+      this.router.navigate(['/player', routeParams]);
     } else {
       // playlist not found
       // TODO: Make translatable
       console.error(`Playlist with ID ${playlistID} not found!`);
     }
-  }
-
-  downloadPlaylist(playlist_id: string, playlist_name: string): void {
-    this.downloading_content[playlist_id] = true;
-    this.postsService.downloadPlaylistFromServer(playlist_id).subscribe(res => {
-      this.downloading_content[playlist_id] = false;
-      const blob: any = res;
-      saveAs(blob, playlist_name + '.zip');
-    });
-
   }
 
   deletePlaylist(args: { file: Playlist; index: number; }): void {
