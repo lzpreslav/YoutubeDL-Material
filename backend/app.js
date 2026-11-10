@@ -29,6 +29,7 @@ const youtubedl_api = require('./youtube-dl');
 const archive_api = require('./archive');
 const files_api = require('./files');
 const notifications_api = require('./notifications');
+const thumbnails_api = require('./thumbnails');
 
 var app = express();
 
@@ -1419,8 +1420,18 @@ async function resolveThumbnailPath(file_path) {
 
 app.get('/api/thumbnail/:path', optionalJwt, async (req, res) => {
     const file_path = await resolveThumbnailPath(decodeURIComponent(req.params.path));
-    if (file_path) res.sendFile(file_path);
-    else res.sendStatus(404);
+    if (!file_path) {
+        res.sendStatus(404);
+        return;
+    }
+    const cache_control = 'private, max-age=86400';
+    const resized = req.query.w ? await thumbnails_api.getResizedThumbnail(file_path, parseInt(req.query.w, 10)).catch(() => null) : null;
+    if (resized) {
+        res.set({'Content-Type': 'image/webp', 'Cache-Control': cache_control, 'ETag': resized.etag});
+        res.send(resized.buffer);
+    } else {
+        res.sendFile(file_path, {cacheControl: false, headers: {'Cache-Control': cache_control}});
+    }
 });
 
 // Downloads management

@@ -45,6 +45,7 @@ const subscriptions_api = require('../subscriptions');
 const archive_api = require('../archive');
 const categories_api = require('../categories');
 const files_api = require('../files');
+const thumbnails_api = require('../thumbnails');
 const youtubedl_api = require('../youtube-dl');
 const config_api = require('../config');
 const CONSTS = require('../consts');
@@ -940,6 +941,43 @@ describe('Utils', async function() {
             config_api.setConfigItem('ytdl_url', 'https://example.com/ytdlm/');
             assert.strictEqual(utils.getBaseURL(), 'https://example.com/ytdlm');
         });
+    });
+});
+
+describe('Thumbnails', async function() {
+    const thumbnail_dir = path.join('appdata', 'test_thumbnails');
+    const png_path = path.resolve(thumbnail_dir, 'thumbnail.png');
+    const fake_png_path = path.resolve(thumbnail_dir, 'not_an_image.png');
+
+    before(async function() {
+        await fs.ensureDir(thumbnail_dir);
+        await exec(`ffmpeg -nostdin -loglevel error -y -f lavfi -i testsrc=size=1280x720 -frames:v 1 "${png_path}"`);
+        await fs.writeFile(fake_png_path, 'not an image');
+    });
+
+    after(async function() {
+        await fs.remove(thumbnail_dir);
+    });
+
+    it('Resizes to webp', async function() {
+        const resized = await thumbnails_api.getResizedThumbnail(png_path, 200);
+        assert(resized && resized.etag);
+        assert(resized.buffer.toString('ascii', 0, 4) === 'RIFF' && resized.buffer.toString('ascii', 8, 12) === 'WEBP');
+        assert(resized.buffer.length < (await fs.stat(png_path)).size);
+    });
+
+    it('Returns the cached entry', async function() {
+        const first = await thumbnails_api.getResizedThumbnail(png_path, 400);
+        const second = await thumbnails_api.getResizedThumbnail(png_path, 400);
+        assert(first && first === second);
+    });
+
+    it('Rejects widths that are not allowed', async function() {
+        assert(await thumbnails_api.getResizedThumbnail(png_path, 999) === null);
+    });
+
+    it('Rejects files that are not images', async function() {
+        assert(await thumbnails_api.getResizedThumbnail(fake_png_path, 200) === null);
     });
 });
 

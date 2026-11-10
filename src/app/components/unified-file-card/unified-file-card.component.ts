@@ -18,6 +18,12 @@ registerLocaleData(localeDE);
 registerLocaleData(localeZH);
 registerLocaleData(localeNB);
 
+const CARD_IMAGE_WIDTHS = {small: 150, medium: 200, large: 300};
+
+function smallerYouTubeThumbnail(url: string): string {
+  return url ? url.replace(/^(https:\/\/i\.ytimg\.com\/vi(?:_webp)?\/[^/]+\/)maxresdefault\.(jpg|webp)$/, '$1hqdefault.$2') : url;
+}
+
 @Component({
     selector: 'app-unified-file-card',
     templateUrl: './unified-file-card.component.html',
@@ -83,6 +89,17 @@ export class UnifiedFileCardComponent implements OnInit {
     }
 
     if (this.file_obj) this.streamURL = this.generateStreamURL();
+  }
+
+  thumbnailSrc(): string {
+    if (!this.file_obj.thumbnailPath) return smallerYouTubeThumbnail(this.file_obj.thumbnailURL);
+    return `${this.thumbnailBlobURL}&w=${CARD_IMAGE_WIDTHS[this.card_size]}`;
+  }
+
+  thumbnailSrcset(): string {
+    if (!this.file_obj.thumbnailPath) return null;
+    const width = CARD_IMAGE_WIDTHS[this.card_size];
+    return `${this.thumbnailBlobURL}&w=${width} 1x, ${this.thumbnailBlobURL}&w=${width * 2} 2x`;
   }
 
   emitDeleteFile(blacklistMode = false) {
