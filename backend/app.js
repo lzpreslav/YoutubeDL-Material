@@ -1903,14 +1903,19 @@ app.use(function(req, res, next) {
         return next();
     }
 
-    let index_path = path.join(__dirname, 'public', 'index.html');
-
-    res.setHeader('Content-Type', 'text/html');
-
-    fs.createReadStream(index_path).pipe(res);
-
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), {headers: {'Cache-Control': 'no-cache'}});
 });
 
 let public_dir = path.join(__dirname, 'public');
 
-app.use(express.static(public_dir));
+const HASHED_ASSET_REGEX = /-[A-Z0-9]{8}\.(js|css|woff2?|ttf|eot|svg)$/;
+
+app.use(express.static(public_dir, {
+    setHeaders: (res, file_path) => {
+        const relative_path = path.relative(public_dir, file_path);
+        const in_build_root = path.dirname(relative_path) === '.' || path.dirname(relative_path) === 'media';
+        if (in_build_root && HASHED_ASSET_REGEX.test(path.basename(file_path))) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    }
+}));
