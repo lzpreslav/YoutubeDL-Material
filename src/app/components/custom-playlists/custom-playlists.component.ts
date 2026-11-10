@@ -16,7 +16,6 @@ export class CustomPlaylistsComponent implements OnInit {
 
   playlists = null;
   playlists_received = false;
-  downloading_content = {'video': {}, 'audio': {}};
 
   constructor(public postsService: PostsService, private router: Router, private dialog: MatDialog) { }
 
@@ -67,29 +66,15 @@ export class CustomPlaylistsComponent implements OnInit {
     const playlistID = playlist.id;
 
     if (playlist) {
-      if (this.postsService.config['Extra']['download_only_mode']) {
-        this.downloadPlaylist(playlist.id, playlist.name);
-      } else {
-        localStorage.setItem('player_navigator', this.router.url);
-        const routeParams = {playlist_id: playlistID};
-        if (playlist.auto) { routeParams['auto'] =  playlist.auto; }
-        this.router.navigate(['/player', routeParams]);
-      }
+      localStorage.setItem('player_navigator', this.router.url);
+      const routeParams = {playlist_id: playlistID};
+      if (playlist.auto) { routeParams['auto'] =  playlist.auto; }
+      this.router.navigate(['/player', routeParams]);
     } else {
       // playlist not found
       // TODO: Make translatable
       console.error(`Playlist with ID ${playlistID} not found!`);
     }
-  }
-
-  downloadPlaylist(playlist_id: string, playlist_name: string): void {
-    this.downloading_content[playlist_id] = true;
-    this.postsService.downloadPlaylistFromServer(playlist_id).subscribe(res => {
-      this.downloading_content[playlist_id] = false;
-      const blob: any = res;
-      saveAs(blob, playlist_name + '.zip');
-    });
-
   }
 
   deletePlaylist(args: { file: Playlist; index: number; }): void {

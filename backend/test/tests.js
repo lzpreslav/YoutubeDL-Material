@@ -385,37 +385,6 @@ describe('Multi User', async function() {
             assert(video_obj);
         });
     });
-    describe.skip('Zip generators', function() {
-        it('Playlist zip generator', async function() {
-            const playlist = await files_api.getPlaylist(playlist_to_test, user_to_test);
-            assert(playlist);
-            const playlist_files_to_download = [];
-            for (let i = 0; i < playlist['uids'].length; i++) {
-                const uid = playlist['uids'][i];
-                const playlist_file = await files_api.getVideo(uid, user_to_test);
-                playlist_files_to_download.push(playlist_file);
-            }
-            const zip_path = await utils.createContainerZipFile(playlist, playlist_files_to_download);
-            const zip_exists = fs.pathExistsSync(zip_path);
-            assert(zip_exists);
-            if (zip_exists) fs.unlinkSync(zip_path);
-        });
-
-        it('Subscription zip generator', async function() {
-            const sub = await subscriptions_api.getSubscription(sub_to_test.id, user_to_test);
-            const sub_videos = await db_api.getRecords('files', {sub_id: sub.id});
-            assert(sub);
-            const sub_files_to_download = [];
-            for (let i = 0; i < sub_videos.length; i++) {
-                const sub_file = sub_videos[i];
-                sub_files_to_download.push(sub_file);
-            }
-            const zip_path = await utils.createContainerZipFile(sub, sub_files_to_download);
-            const zip_exists = fs.pathExistsSync(zip_path);
-            assert(zip_exists);
-            if (zip_exists) fs.unlinkSync(zip_path);
-        });
-    });
     // describe('Video player - subscription', function() {
     //     const sub_to_test = '';
     //     const video_to_test = 'ebbcfffb-d6f1-4510-ad25-d1ec82e0477e';

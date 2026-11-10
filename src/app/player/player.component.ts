@@ -298,19 +298,6 @@ export class PlayerComponent implements OnInit, AfterViewInit, OnDestroy {
     return decodeURI(uri);
   }
 
-  downloadContent(): void {
-    const zipName = this.db_playlist.name;
-    this.downloading = true;
-    this.postsService.downloadPlaylistFromServer(this.playlist_id, this.uuid).subscribe(res => {
-      this.downloading = false;
-      const blob: Blob = res;
-      saveAs(blob, zipName + '.zip');
-    }, err => {
-      console.error(err);
-      this.downloading = false;
-    });
-  }
-
   downloadFile(): void {
     const filename = this.playlist[0].title;
     const ext = (this.playlist[0].type === 'audio/mp3') ? '.mp3' : '.mp4';

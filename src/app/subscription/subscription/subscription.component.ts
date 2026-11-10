@@ -18,7 +18,6 @@ export class SubscriptionComponent implements OnInit, OnDestroy {
   subscription: Subscription = null;
   use_youtubedl_archive = false;
   descendingMode = true;
-  downloading = false;
   sub_interval = null;
   check_clicked = false;
   cancel_clicked = false;
@@ -69,18 +68,6 @@ export class SubscriptionComponent implements OnInit, OnDestroy {
 
   getConfig(): void {
     this.use_youtubedl_archive = this.postsService.config['Downloader']['use_youtubedl_archive'];
-  }
-
-  downloadContent(): void {
-    this.downloading = true;
-    this.postsService.downloadSubFromServer(this.subscription.id).subscribe(res => {
-      this.downloading = false;
-      const blob: Blob = res;
-      saveAs(blob, this.subscription.name + '.zip');
-    }, err => {
-      console.log(err);
-      this.downloading = false;
-    });
   }
 
   editSubscription(): void {

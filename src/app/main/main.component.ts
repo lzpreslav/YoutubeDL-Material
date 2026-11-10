@@ -294,11 +294,7 @@ export class MainComponent implements OnInit {
     } else {
       // if download only mode, just download the file. no redirect
       if (force_view === false && this.downloadOnlyMode && !this.iOS) {
-        if (is_playlist) {
-          this.downloadPlaylist(container['uid']);
-        } else {
-          this.downloadFileFromServer(container as DatabaseFile, type);
-        }
+        if (!is_playlist) this.downloadFileFromServer(container as DatabaseFile, type);
         this.reloadRecentVideos(is_playlist);
       } else {
         localStorage.setItem('player_navigator', this.router.url.split(';')[0]);
@@ -449,14 +445,6 @@ export class MainComponent implements OnInit {
         this.postsService.deleteFile(file.uid).subscribe(() => {});
       }
     });
-  }
-
-  downloadPlaylist(playlist: Playlist): void {
-    this.postsService.downloadPlaylistFromServer(playlist.id).subscribe(res => {
-      const blob: Blob = res;
-      saveAs(blob, playlist.name + '.zip');
-    });
-
   }
 
   inputChanged(): void {

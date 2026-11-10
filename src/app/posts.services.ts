@@ -400,16 +400,6 @@ export class PostsService  {
         return this.http.post<DownloadTwitchChatByVODIDResponse>(this.path + 'downloadTwitchChatByVODID', body, this.httpOptions);
     }
 
-    downloadPlaylistFromServer(playlist_id, uuid = null) {
-        const body: DownloadFileRequest = {uuid: uuid, playlist_id: playlist_id};
-        return this.http.post(this.path + 'downloadFileFromServer', body, {responseType: 'blob', params: this.httpOptions.params});
-    }
-
-    downloadSubFromServer(sub_id, uuid = null) {
-        const body: DownloadFileRequest = {uuid: uuid, sub_id: sub_id};
-        return this.http.post(this.path + 'downloadFileFromServer', body, {responseType: 'blob', params: this.httpOptions.params});
-
-    }
 
     checkConcurrentStream(uid) {
         const body: CheckConcurrentStreamRequest = {uid: uid};

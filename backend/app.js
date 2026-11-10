@@ -1233,49 +1233,19 @@ app.post('/api/deleteAllFiles', optionalJwt, async (req, res) => {
 app.post('/api/downloadFileFromServer', optionalJwt, async (req, res) => {
     let uid = req.body.uid;
     let uuid = req.body.uuid;
-    let playlist_id = req.body.playlist_id;
     let sub_id = req.body.sub_id;
-
-    let file_path_to_download = null;
 
     if (!uuid && req.user) uuid = req.user.uid;
 
-    let zip_file_generated = false;
-    if (playlist_id) {
-        zip_file_generated = true;
-        const playlist_files_to_download = [];
-        const playlist = await files_api.getPlaylist(playlist_id, uuid);
-        for (let i = 0; i < playlist['uids'].length; i++) {
-            const playlist_file_uid = playlist['uids'][i];
-            const file_obj = await files_api.getVideo(playlist_file_uid, uuid);
-            playlist_files_to_download.push(file_obj);
-        }
-
-        // generate zip
-        file_path_to_download = await utils.createContainerZipFile(playlist['name'], playlist_files_to_download);
-    } else if (sub_id && !uid) {
-        zip_file_generated = true;
-        const sub = await db_api.getRecord('subscriptions', {id: sub_id});
-        const sub_files_to_download = await db_api.getRecords('files', {sub_id: sub_id});
-
-        // generate zip
-        file_path_to_download = await utils.createContainerZipFile(sub['name'], sub_files_to_download);
-    } else {
-        const file_obj = await files_api.getVideo(uid, uuid, sub_id)
-        file_path_to_download = file_obj.path;
+    const file_obj = await files_api.getVideo(uid, uuid, sub_id);
+    if (!file_obj) {
+        res.sendStatus(404);
+        return;
     }
+    let file_path_to_download = file_obj.path;
     if (!path.isAbsolute(file_path_to_download)) file_path_to_download = path.join(__dirname, file_path_to_download);
     res.sendFile(file_path_to_download, function (err) {
-        if (err) {
-          logger.error(err);
-        } else if (zip_file_generated) {
-          try {
-            // delete generated zip file
-            fs.unlinkSync(file_path_to_download);
-          } catch(e) {
-            logger.error(`Failed to remove file after sending to client: ${file_path_to_download}`);
-          }
-        }
+        if (err) logger.error(err);
     });
 });
 
