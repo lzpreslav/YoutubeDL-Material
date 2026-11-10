@@ -33,6 +33,11 @@ $dark-theme:   mat.m2-define-dark-theme((color: (primary: $dark-primary, accent:
   @include mat.all-component-colors($dark-theme);
 }
 
+// Overlays render outside the app root, so they don't inherit its themed text color
+.cdk-overlay-container {
+  color: var(--mat-app-text-color);
+}
+
 .mat-mdc-outlined-button, .mat-mdc-raised-button, .mat-mdc-flat-button {
   border-radius: 24px !important
 }
