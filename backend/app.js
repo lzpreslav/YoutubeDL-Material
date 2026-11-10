@@ -1425,6 +1425,18 @@ app.get('/api/thumbnail/:path', optionalJwt, async (req, res) => {
 
 // Downloads management
 
+const DOWNLOAD_LIST_OMITTED_FIELDS = ['prefetched_info', 'options', 'args', 'files_to_check_for_progress'];
+
+function summarizeDownload(download) {
+    const summary = {...download};
+    for (const field of DOWNLOAD_LIST_OMITTED_FIELDS) delete summary[field];
+    if (download.container) {
+        const {uid, id, uids} = download.container;
+        summary.container = {uid, id, uids};
+    }
+    return summary;
+}
+
 app.post('/api/downloads', optionalJwt, async (req, res) => {
     const user_uid = req.isAuthenticated() ? req.user.uid : null;
     const uids = req.body.uids;
@@ -1432,7 +1444,7 @@ app.post('/api/downloads', optionalJwt, async (req, res) => {
 
     if (uids) downloads = downloads.filter(download => uids.includes(download['uid']));
 
-    res.send({downloads: downloads});
+    res.send({downloads: downloads.map(summarizeDownload)});
 });
 
 app.post('/api/download', optionalJwt, async (req, res) => {

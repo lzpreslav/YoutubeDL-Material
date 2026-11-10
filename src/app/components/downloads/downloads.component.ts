@@ -10,6 +10,9 @@ import { ConfirmDialogComponent } from 'app/dialogs/confirm-dialog/confirm-dialo
 import { MatSort } from '@angular/material/sort';
 import { Clipboard } from '@angular/cdk/clipboard';
 import { Download } from 'api-types';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+import { Poller } from 'app/poller';
 
 @Component({
     selector: 'app-downloads',
@@ -22,10 +25,9 @@ export class DownloadsComponent implements OnInit, OnDestroy {
 
   @Input() uids: string[] = null;
 
-  downloads_check_interval = 1000;
   downloads = [];
   finished_downloads = [];
-  interval_id = null;
+  poller = new Poller(() => this.getCurrentDownloads(), () => this.running_download_exists ? 1000 : 3000);
 
   keys = Object.keys;
 
@@ -122,27 +124,20 @@ export class DownloadsComponent implements OnInit, OnDestroy {
     this.innerWidth = window.innerWidth;
     this.recalculateColumns();
     this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.getCurrentDownloadsRecurring();
+      if (!this.postsService.config['Extra']['enable_downloads_manager']) {
+        this.router.navigate(['/home']);
+        return;
+      }
+      this.poller.start();
     });
   }
 
-  getCurrentDownloadsRecurring(): void {
-    if (!this.postsService.config['Extra']['enable_downloads_manager']) {
-      this.router.navigate(['/home']);
-      return;
-    }
-    this.getCurrentDownloads();
-    this.interval_id = setInterval(() => {
-      this.getCurrentDownloads();
-    }, this.downloads_check_interval);
-  }
-
   ngOnDestroy(): void {
-    if (this.interval_id) { clearInterval(this.interval_id) }
+    this.poller.stop();
   }
 
-  getCurrentDownloads(): void {
-    this.postsService.getCurrentDownloads(this.uids).subscribe(res => {
+  getCurrentDownloads(): Observable<unknown> {
+    return this.postsService.getCurrentDownloads(this.uids).pipe(tap(res => {
       if (res['downloads'] !== null 
         && res['downloads'] !== undefined
         && JSON.stringify(this.downloads) !== JSON.stringify(res['downloads'])) {
@@ -158,7 +153,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
         // failed to get downloads
       }
       this.downloads_retrieved = true;
-    });
+    }));
   }
 
   clearDownloadsByType(): void {
@@ -197,6 +192,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
             this.postsService.openSnackBar($localize`Cleared downloads!`);
             dialogRef.close();
           }
+          this.poller.pollNow();
         });
       }
     });
@@ -207,6 +203,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to pause download! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
@@ -215,6 +212,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to pause all downloads! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
@@ -223,6 +221,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to resume download! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
@@ -231,6 +230,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to resume all downloads! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
@@ -243,6 +243,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
           this.uids.push(res['new_download_uid']);
         }
       }
+      this.poller.pollNow();
     });
   }
 
@@ -251,6 +252,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to cancel download! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
@@ -259,6 +261,7 @@ export class DownloadsComponent implements OnInit, OnDestroy {
       if (!res['success']) {
         this.postsService.openSnackBar($localize`Failed to pause download! See server logs for more info.`);
       }
+      this.poller.pollNow();
     });
   }
 
