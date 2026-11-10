@@ -1,6 +1,7 @@
-import { Component, OnInit, ElementRef, ViewChild, ViewChildren, QueryList } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy } from '@angular/core';
 import {PostsService} from '../posts.services';
-import { Observable, Subject } from 'rxjs';
+import { Subject, fromEvent } from 'rxjs';
+import { debounceTime, filter, map, switchAll, tap } from 'rxjs/operators';
 import {UntypedFormControl, Validators} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -13,9 +14,11 @@ import { RecentVideosComponent } from 'app/components/recent-videos/recent-video
 import { DatabaseFile, Download, FileType, Playlist } from 'api-types';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './main.component.html',
-  styleUrls: ['./main.component.css']
+    selector: 'app-root',
+    templateUrl: './main.component.html',
+    styleUrls: ['./main.component.css'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class MainComponent implements OnInit {
   youtubeAuthDisabledOverride = false;
@@ -284,7 +287,7 @@ export class MainComponent implements OnInit {
     }
 
     this.argsChangedSubject
-      .debounceTime(500)
+      .pipe(debounceTime(500))
       .subscribe((should_simulate) => {
         if (should_simulate) this.getSimulatedOutput();
     });
@@ -608,14 +611,14 @@ export class MainComponent implements OnInit {
   }
 
   attachToInput(): void {
-    Observable.fromEvent(this.urlInput.nativeElement, 'keyup')
-      .map((e: any) => e.target.value)           // extract the value of input
-      .filter((text: string) => text.length > 1) // filter out if empty
-      .debounceTime(250)                         // only once every 250ms
-      .do(() => this.results_loading = true)         // enable loading
-      .map((query: string) => this.youtubeSearch.search(query))
-      .switch()                                  // act on the return of the search
-      .subscribe(
+    fromEvent(this.urlInput.nativeElement, 'keyup').pipe(
+      map((e: any) => e.target.value),           // extract the value of input
+      filter((text: string) => text.length > 1), // filter out if empty
+      debounceTime(250),                         // only once every 250ms
+      tap(() => this.results_loading = true),    // enable loading
+      map((query: string) => this.youtubeSearch.search(query)),
+      switchAll()                                // act on the return of the search
+    ).subscribe(
         (results: Result[]) => {
           this.results_loading = false;
           if (this.url !== '' && results && results.length > 0) {

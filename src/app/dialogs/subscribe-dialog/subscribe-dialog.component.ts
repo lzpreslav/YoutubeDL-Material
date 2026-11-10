@@ -1,12 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogRef, MatDialog } from '@angular/material/dialog';
 import { PostsService } from 'app/posts.services';
 import { ArgModifierDialogComponent } from '../arg-modifier-dialog/arg-modifier-dialog.component';
 
 @Component({
-  selector: 'app-subscribe-dialog',
-  templateUrl: './subscribe-dialog.component.html',
-  styleUrls: ['./subscribe-dialog.component.scss']
+    selector: 'app-subscribe-dialog',
+    templateUrl: './subscribe-dialog.component.html',
+    styleUrls: ['./subscribe-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class SubscribeDialogComponent implements OnInit {
   // inputs

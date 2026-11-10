@@ -1,18 +1,20 @@
-import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { DatabaseFile, FileType, FileTypeFilter, Sort } from '../../../api-types';
 import { MatPaginator } from '@angular/material/paginator';
 import { Subject } from 'rxjs';
-import { distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatChipListboxChange } from '@angular/material/chips';
 import { MatSelectionListChange } from '@angular/material/list';
 
 @Component({
-  selector: 'app-recent-videos',
-  templateUrl: './recent-videos.component.html',
-  styleUrls: ['./recent-videos.component.scss']
+    selector: 'app-recent-videos',
+    templateUrl: './recent-videos.component.html',
+    styleUrls: ['./recent-videos.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class RecentVideosComponent implements OnInit {
 
@@ -139,8 +141,7 @@ export class RecentVideosComponent implements OnInit {
     this.selected_data_objs = this.defaultSelected;    
 
     this.searchChangedSubject
-      .debounceTime(500)
-      .pipe(distinctUntilChanged()
+      .pipe(debounceTime(500), distinctUntilChanged()
       ).subscribe(model => {
         if (model.length > 0) {
           this.search_mode = true;
@@ -379,9 +380,9 @@ export class RecentVideosComponent implements OnInit {
   }
 
   fileSelectionChanged(event: MatSelectionListChange): void {
-    // TODO: make sure below line is possible (_selected is private)
-    const adding = event.option['_selected'];
-    const value = event.option.value;
+    const option = event.options[0];
+    const adding = option.selected;
+    const value = option.value;
     if (adding) {
       this.selected_data.push(value.uid);
       this.selected_data_objs.push(value);

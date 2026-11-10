@@ -1,13 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { MatDialogRef } from '@angular/material/dialog';
 import { isoLangs } from './locales_list';
 
 @Component({
-  selector: 'app-user-profile-dialog',
-  templateUrl: './user-profile-dialog.component.html',
-  styleUrls: ['./user-profile-dialog.component.scss']
+    selector: 'app-user-profile-dialog',
+    templateUrl: './user-profile-dialog.component.html',
+    styleUrls: ['./user-profile-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class UserProfileDialogComponent implements OnInit {
 

@@ -1,11 +1,13 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { PostsService } from 'app/posts.services';
 
 @Component({
-  selector: 'app-edit-category-dialog',
-  templateUrl: './edit-category-dialog.component.html',
-  styleUrls: ['./edit-category-dialog.component.scss']
+    selector: 'app-edit-category-dialog',
+    templateUrl: './edit-category-dialog.component.html',
+    styleUrls: ['./edit-category-dialog.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class EditCategoryDialogComponent implements OnInit {
 

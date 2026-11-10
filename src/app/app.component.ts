@@ -1,18 +1,10 @@
-import { Component, OnInit, ElementRef, ViewChild, HostBinding, AfterViewInit } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, HostBinding, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import {MatDialogRef} from '@angular/material/dialog';
 import {PostsService} from './posts.services';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSidenav } from '@angular/material/sidenav';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { saveAs } from 'file-saver';
-import 'rxjs/add/observable/of';
-import 'rxjs/add/operator/mapTo';
-import 'rxjs/add/operator/toPromise';
-import 'rxjs/add/observable/fromEvent'
-import 'rxjs/add/operator/filter'
-import 'rxjs/add/operator/debounceTime'
-import 'rxjs/add/operator/do'
-import 'rxjs/add/operator/switch'
 import { Router, NavigationStart, NavigationEnd } from '@angular/router';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { THEMES_CONFIG } from '../themes';
@@ -24,13 +16,15 @@ import { NotificationsComponent } from './components/notifications/notifications
 import { ArchiveViewerComponent } from './components/archive-viewer/archive-viewer.component';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
-  providers: [{
-    provide: MatDialogRef,
-    useValue: {}
-  }]
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.css'],
+    providers: [{
+            provide: MatDialogRef,
+            useValue: {}
+        }],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class AppComponent implements OnInit, AfterViewInit {
 

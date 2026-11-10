@@ -1,11 +1,13 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { PostsService } from 'app/posts.services';
 
 @Component({
-  selector: 'app-manage-role',
-  templateUrl: './manage-role.component.html',
-  styleUrls: ['./manage-role.component.scss']
+    selector: 'app-manage-role',
+    templateUrl: './manage-role.component.html',
+    styleUrls: ['./manage-role.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class ManageRoleComponent implements OnInit {
 

@@ -1,13 +1,15 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, ChangeDetectionStrategy } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { UntypedFormControl } from '@angular/forms';
 import { PostsService } from 'app/posts.services';
 import { Playlist } from 'api-types';
 
 @Component({
-  selector: 'app-create-playlist',
-  templateUrl: './create-playlist.component.html',
-  styleUrls: ['./create-playlist.component.scss']
+    selector: 'app-create-playlist',
+    templateUrl: './create-playlist.component.html',
+    styleUrls: ['./create-playlist.component.scss'],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    standalone: false
 })
 export class CreatePlaylistComponent implements OnInit {
   // really "createAndModifyPlaylistDialogComponent"
