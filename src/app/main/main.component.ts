@@ -1,7 +1,8 @@
-import { Component, OnInit, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ViewChild, ViewChildren, QueryList, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {PostsService} from '../posts.services';
 import { Subject } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, filter } from 'rxjs/operators';
 import {UntypedFormControl, Validators} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -164,6 +165,9 @@ export class MainComponent implements OnInit {
   simulatedOutput = '';
 
   interval_id = null;
+  config_loaded = false;
+
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(public postsService: PostsService, public snackBar: MatSnackBar,
     private router: Router, public dialog: MatDialog, private platform: Platform, private route: ActivatedRoute) {
@@ -237,19 +241,12 @@ export class MainComponent implements OnInit {
 
   // app initialization.
   ngOnInit(): void {
-    if (this.postsService.initialized) {
-      this.configLoad();
-    } else {
-      this.postsService.service_initialized.subscribe(init => {
-        if (init) {
-          this.configLoad();
-        }
-      });
-    }
-
-    this.postsService.config_reloaded.subscribe(changed => {
-      if (changed) {
+    this.postsService.config_reloaded.pipe(filter(reloaded => reloaded), takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.config_loaded) {
         this.loadConfig();
+      } else {
+        this.config_loaded = true;
+        this.configLoad();
       }
     });
 

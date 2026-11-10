@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostsService } from 'app/posts.services';
 import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
@@ -17,16 +18,16 @@ export class CustomPlaylistsComponent implements OnInit {
   playlists = null;
   playlists_received = false;
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(public postsService: PostsService, private router: Router, private dialog: MatDialog) { }
 
   ngOnInit(): void {
-    this.postsService.service_initialized.subscribe(init => {
-      if (init) {
-        this.getAllPlaylists();
-      }
+    this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.getAllPlaylists();
     });
 
-    this.postsService.playlists_changed.subscribe(changed => {
+    this.postsService.playlists_changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(changed => {
       if (changed) {
         this.getAllPlaylists();
       }

@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy, ViewChild, Input, EventEmitter, HostListener, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, Input, EventEmitter, HostListener, ChangeDetectionStrategy, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostsService } from 'app/posts.services';
 import { trigger, transition, animateChild, stagger, query, style, animate } from '@angular/animations';
 import { Router } from '@angular/router';
@@ -111,6 +112,8 @@ export class DownloadsComponent implements OnInit, OnDestroy {
     return result;
   }
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(public postsService: PostsService, private router: Router, private dialog: MatDialog, private clipboard: Clipboard) { }
 
   ngOnInit(): void {
@@ -118,15 +121,9 @@ export class DownloadsComponent implements OnInit, OnDestroy {
     if (this.uids) this.displayedColumnsBig = this.displayedColumnsBig.filter(col => col !== 'sub_name');
     this.innerWidth = window.innerWidth;
     this.recalculateColumns();
-    if (this.postsService.initialized) {
+    this.postsService.whenInitialized().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.getCurrentDownloadsRecurring();
-    } else {
-      this.postsService.service_initialized.subscribe(init => {
-        if (init) {
-          this.getCurrentDownloadsRecurring();
-        }
-      });
-    }
+    });
   }
 
   getCurrentDownloadsRecurring(): void {
