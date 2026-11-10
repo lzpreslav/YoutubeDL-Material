@@ -69,6 +69,7 @@ export type { GetLogsRequest } from './models/GetLogsRequest';
 export type { GetLogsResponse } from './models/GetLogsResponse';
 export type { GetMp3sResponse } from './models/GetMp3sResponse';
 export type { GetMp4sResponse } from './models/GetMp4sResponse';
+export type { GetNotificationsRequest } from './models/GetNotificationsRequest';
 export type { GetNotificationsResponse } from './models/GetNotificationsResponse';
 export type { GetPlaylistRequest } from './models/GetPlaylistRequest';
 export type { GetPlaylistResponse } from './models/GetPlaylistResponse';

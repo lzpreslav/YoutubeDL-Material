@@ -1,3 +1,6 @@
+@if (notifications === null) {
+  <div style="text-align: center; margin: 10px;" i18n="Loading notifications">Loading...</div>
+}
 @if (notifications !== null && notifications.length === 0) {
   <div style="text-align: center; margin: 10px;" i18n="No notifications available">No notifications available</div>
 }
