@@ -607,6 +607,49 @@ describe('youtube-dl', async function() {
         const {child_process} = await youtubedl_api.runYoutubeDL(url, args);
         assert(child_process);
     });
+
+    describe('Failing process', function() {
+        // a stand-in for yt-dlp, so these don't depend on what YouTube serves
+        const fake_fork = 'fake-ytdl';
+        const fake_binary_path = path.join('appdata', 'bin', fake_fork);
+        let original_fork = null;
+
+        const runFakeProcess = async (script_lines) => {
+            fs.writeFileSync(fake_binary_path, ['#!/bin/sh', ...script_lines].join('\n'), {mode: 0o755});
+            const {callback} = await youtubedl_api.runYoutubeDL('https://example.com', []);
+            return await callback;
+        }
+
+        beforeEach(function() {
+            original_fork = config_api.getConfigItem('ytdl_default_downloader');
+            config_api.setConfigItem('ytdl_default_downloader', fake_fork);
+        });
+        afterEach(function() {
+            config_api.setConfigItem('ytdl_default_downloader', original_fork);
+            if (fs.existsSync(fake_binary_path)) fs.unlinkSync(fake_binary_path);
+        });
+
+        it('Returns the videos it got through when another fails', async function() {
+            const {parsed_output, partial_output, err} = await runFakeProcess([
+                `echo '{"id": "first"}'`,
+                `echo 'ERROR: [youtube] second: This video is unavailable' >&2`,
+                `echo '{"id": "third"}'`,
+                'exit 1'
+            ]);
+            assert(parsed_output === null);
+            assert(utils.getCleanYoutubeDLError(err) === '[youtube] second: This video is unavailable');
+            assert.deepStrictEqual(partial_output.map(video => video['id']), ['first', 'third']);
+        });
+
+        it('Returns no videos when all of them fail', async function() {
+            const {parsed_output, partial_output} = await runFakeProcess([
+                `echo 'ERROR: [youtube] first: This video is unavailable' >&2`,
+                'exit 1'
+            ]);
+            assert(parsed_output === null);
+            assert.deepStrictEqual(partial_output, []);
+        });
+    });
 });
 
 describe('Subscriptions', function() {
@@ -669,6 +712,48 @@ describe('Subscriptions', function() {
     });
     it('Fresh uploads', async function() {
 
+    });
+
+    describe('Check', function() {
+        const downloader_api = require('../downloader');
+        const original_run = youtubedl_api.runYoutubeDL;
+        const original_create_download = downloader_api.createDownload;
+        const failure = {stderr: 'ERROR: [youtube] abc: Join this channel to get access to members-only content', stdout: ''};
+        const video = {id: 'hpigjnKl7nI', extractor: 'youtube', webpage_url: 'https://www.youtube.com/watch?v=hpigjnKl7nI', _filename: 'video.mp4', formats: []};
+        let queued_urls = [];
+
+        const runCheck = async (ytdl_result) => {
+            youtubedl_api.runYoutubeDL = async () => ({child_process: null, callback: Promise.resolve(ytdl_result)});
+            await subscriptions_api.subscribe(new_sub, null, true);
+            assert(await subscriptions_api.getVideosForSub(new_sub['id']));
+            for (let i = 0; i < 50; i++) {
+                await new Promise(resolve => setTimeout(resolve, 20));
+                const sub = await subscriptions_api.getSubscription(new_sub['id']);
+                if (i > 5 && !sub['downloading'] && (queued_urls.length > 0 || i > 25)) break;
+            }
+        }
+
+        beforeEach(function() {
+            queued_urls = [];
+            downloader_api.createDownload = async (url) => { queued_urls.push(url); };
+        });
+        afterEach(function() {
+            youtubedl_api.runYoutubeDL = original_run;
+            downloader_api.createDownload = original_create_download;
+        });
+
+        it('Queues the videos it could read when others fail', async function() {
+            await runCheck({parsed_output: null, partial_output: [video], err: failure});
+            assert.deepStrictEqual(queued_urls, [video['webpage_url']]);
+        });
+        it('Queues nothing when every video fails', async function() {
+            await runCheck({parsed_output: null, partial_output: [], err: failure});
+            assert.deepStrictEqual(queued_urls, []);
+        });
+        it('Queues nothing when yt-dlp returns no output', async function() {
+            await runCheck({parsed_output: null, err: failure});
+            assert.deepStrictEqual(queued_urls, []);
+        });
     });
 });
 

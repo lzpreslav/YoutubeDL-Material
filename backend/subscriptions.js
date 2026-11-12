@@ -294,12 +294,14 @@ async function _getVideosForSub(sub) {
 
     let {child_process, callback} = await youtubedl_api.runYoutubeDL(sub.url, downloadConfig);
     updateSubscriptionProperty(sub, {child_process: child_process}, user_uid);
-    const {parsed_output, err} = await callback;
+    const {parsed_output, partial_output, err} = await callback;
     updateSubscriptionProperty(sub, {downloading: false, child_process: null}, user_uid);
-    if (!parsed_output) {
+    const output_jsons = parsed_output || partial_output;
+    if (!output_jsons || (!parsed_output && output_jsons.length === 0)) {
         logger.error(`Subscription check failed for ${sub.name || sub.url}: ${utils.getCleanYoutubeDLError(err)}`);
         return null;
     }
+    if (!parsed_output) logger.warn(`Subscription check for ${sub.name || sub.url} skipped videos that failed: ${utils.getCleanYoutubeDLError(err)}`);
 
     // remove temporary archive file if it exists
     const archive_path = path.join(appendedBasePath, 'archive.txt');
@@ -309,7 +311,7 @@ async function _getVideosForSub(sub) {
     }
 
     logger.verbose('Subscription: finished check for ' + sub.name);
-    const files_to_download = await handleOutputJSON(parsed_output, sub, user_uid);
+    const files_to_download = await handleOutputJSON(output_jsons, sub, user_uid);
     return files_to_download;
 }
 

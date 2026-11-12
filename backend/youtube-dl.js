@@ -60,14 +60,19 @@ const runYoutubeDLProcess = async (url, args, youtubedl_fork = config_api.getCon
     const callback = new Promise(async resolve => {
         try {
             const {stdout, stderr} = await child_process;
-            const output_lines = stdout.trim().split(/\r?\n/).filter(line => !line.startsWith(CONSTS.DOWNLOAD_PROGRESS_PREFIX));
-            const parsed_output = utils.parseOutputJSON(output_lines, stderr);
-            resolve({parsed_output, err: stderr});
+            resolve({parsed_output: parseProcessOutput(stdout, stderr), err: stderr});
         } catch (e) {
-            resolve({parsed_output: null, err: e})
+            // yt-dlp exits non-zero when any video fails, the videos it did get through are still printed
+            const partial_output = typeof e.stdout === 'string' ? parseProcessOutput(e.stdout, null) : null;
+            resolve({parsed_output: null, partial_output, err: e})
         }
     });
     return {child_process, callback}
+}
+
+function parseProcessOutput(stdout, stderr) {
+    const output_lines = stdout.trim().split(/\r?\n/).filter(line => !line.startsWith(CONSTS.DOWNLOAD_PROGRESS_PREFIX));
+    return utils.parseOutputJSON(output_lines, stderr);
 }
 
 function getYoutubeDLPath(youtubedl_fork = config_api.getConfigItem('ytdl_default_downloader')) {
