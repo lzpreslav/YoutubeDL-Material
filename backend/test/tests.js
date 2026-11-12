@@ -1310,6 +1310,21 @@ describe('Categories', async function() {
     });
 });
 
+describe('Notifications', function() {
+    const notifications_api = require('../notifications');
+    const notification_data = {title: 'Download complete', body: 'Video title\nOriginal URL: https://example.com/video', type: 'download_complete', url: 'https://example.com/player', thumbnail: null};
+
+    it('Slack message has fallback text for notification previews', async function() {
+        const message = notifications_api.generateSlackMessage(notification_data);
+        assert(message['text'] === 'Download complete\nVideo title\nOriginal URL: https://example.com/video');
+        assert(message['blocks'].length === 4);
+    });
+    it('Slack message includes the thumbnail when there is one', async function() {
+        const message = notifications_api.generateSlackMessage({...notification_data, thumbnail: 'https://example.com/thumbnail.jpg'});
+        assert(message['blocks'].some(block => block['type'] === 'image' && block['image_url'] === 'https://example.com/thumbnail.jpg'));
+    });
+});
+
 describe('Config', async function() {
     it('findChangedConfigItems', async function() {
         const old_config = {

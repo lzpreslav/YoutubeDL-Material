@@ -153,10 +153,10 @@ async function sendGotifyNotification({body, title, type, url, thumbnail}) {
 
 // Slack
 
-function sendSlackNotification({body, title, type, url, thumbnail}) {
-    const slack_webhook_url = config_api.getConfigItem('ytdl_slack_webhook_url');
-    logger.verbose(`Sending slack notification to ${slack_webhook_url}`);
+exports.generateSlackMessage = ({body, title, type, url, thumbnail}) => {
     const data = {
+        // shown in notification previews, which don't render blocks
+        text: `${title}\n${body}`,
         blocks: [
             {
                 type: "section",
@@ -203,12 +203,19 @@ function sendSlackNotification({body, title, type, url, thumbnail}) {
         }
     );
 
+    return data;
+}
+
+function sendSlackNotification(notification_data) {
+    const slack_webhook_url = config_api.getConfigItem('ytdl_slack_webhook_url');
+    logger.verbose(`Sending slack notification to ${slack_webhook_url}`);
+
     fetch(slack_webhook_url, {
         method: 'POST',
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(exports.generateSlackMessage(notification_data)),
     }).then(async (res) => {
         if (!res.ok) logger.error(`Failed to send slack notification: ${res.status} ${await res.text()}`);
     }).catch((err) => {
