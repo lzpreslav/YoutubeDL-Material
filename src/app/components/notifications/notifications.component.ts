@@ -35,6 +35,10 @@ export class NotificationsComponent implements OnInit {
       key: 'task_finished',
       label: $localize`Task`
     },
+    subscription_check_error: {
+      key: 'subscription_check_error',
+      label: $localize`Subscription error`
+    },
   };
 
   selectedFilters = [];
@@ -75,6 +79,9 @@ export class NotificationsComponent implements OnInit {
         break;
       case NotificationAction.VIEW_TASKS:
         this.router.navigate(['tasks']);
+        break;
+      case NotificationAction.VIEW_SUBSCRIPTION:
+        this.router.navigate(['subscription', {id: action_info['notification']['data']['sub_id']}]);
         break;
       default:
         console.error(`Notification action ${action_info['action']} does not exist!`);

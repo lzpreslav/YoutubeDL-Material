@@ -755,6 +755,54 @@ describe('Subscriptions', function() {
             assert.deepStrictEqual(queued_urls, []);
         });
     });
+
+    describe('Failed check', function() {
+        const original_run = youtubedl_api.runYoutubeDL;
+        const getNotifications = () => db_api.getRecords('notifications', {type: 'subscription_check_error'});
+
+        const runFailingCheck = async (stderr, expected_count = 1) => {
+            const before = await getNotifications();
+            youtubedl_api.runYoutubeDL = async () => ({child_process: null, callback: Promise.resolve({parsed_output: null, err: {stderr: stderr}})});
+            assert(await subscriptions_api.getVideosForSub(new_sub['id']));
+            for (let i = 0; i < 100; i++) {
+                await new Promise(resolve => setTimeout(resolve, 20));
+                const notifications = await getNotifications();
+                const is_new = notifications.length === expected_count && !before.some(notification => notification['uid'] === notifications[0]['uid']);
+                const sub = await subscriptions_api.getSubscription(new_sub['id']);
+                if (is_new && !sub['downloading']) return notifications;
+            }
+            return await getNotifications();
+        }
+
+        beforeEach(async function() {
+            await db_api.removeAllRecords('notifications');
+            await subscriptions_api.subscribe(new_sub, null, true);
+        });
+        afterEach(function() {
+            youtubedl_api.runYoutubeDL = original_run;
+        });
+
+        it('Sends a notification with the error', async function() {
+            const notifications = await runFailingCheck('ERROR: [youtube:tab] UUMOabc: The playlist does not exist.');
+            assert(notifications.length === 1);
+            assert(notifications[0]['data']['sub_id'] === new_sub['id']);
+            assert(notifications[0]['data']['sub_name'] === new_sub['name']);
+            assert(notifications[0]['data']['error_message'] === '[youtube:tab] UUMOabc: The playlist does not exist.');
+        });
+        it('Points out expired cookies', async function() {
+            const stderr = 'WARNING: [youtube] The provided YouTube account cookies are no longer valid. They have likely been rotated in the browser as a security measure.\nERROR: [youtube] abc: Join this channel to get access to members-only content like this video.';
+            const notifications = await runFailingCheck(stderr);
+            assert(notifications.length === 1);
+            assert(notifications[0]['data']['error_message'].startsWith('The YouTube cookies have expired'));
+            assert(notifications[0]['data']['error_message'].includes('Join this channel'));
+        });
+        it('Keeps one notification for a subscription that keeps failing', async function() {
+            await runFailingCheck('ERROR: first failure');
+            const notifications = await runFailingCheck('ERROR: second failure');
+            assert(notifications.length === 1);
+            assert(notifications[0]['data']['error_message'] === 'second failure');
+        });
+    });
 });
 
 describe('Tasks', function() {
