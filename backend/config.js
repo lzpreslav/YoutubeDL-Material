@@ -208,7 +208,8 @@ const DEFAULT_CONFIG = {
         "include_thumbnail": true,
         "include_metadata": true,
         "max_concurrent_downloads": 5,
-        "download_rate_limit": ""
+        "download_rate_limit": "",
+        "temp_download_path": "appdata/temp/"
       },
       "Extra": {
         "title_top": "YoutubeDL-Material",

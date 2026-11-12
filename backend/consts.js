@@ -46,6 +46,10 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_download_rate_limit',
         'path': 'YoutubeDLMaterial.Downloader.download_rate_limit'
     },
+    'ytdl_temp_download_path': {
+        'key': 'ytdl_temp_download_path',
+        'path': 'YoutubeDLMaterial.Downloader.temp_download_path'
+    },
 
     // Extra
     'ytdl_title_top': {
@@ -333,6 +337,8 @@ const YTDL_ARGS_WITH_VALUES = [
 ];
 
 exports.SUBSCRIPTION_BACKUP_PATH = 'subscription_backup.json'
+
+exports.DOWNLOAD_PROGRESS_PREFIX = '[ytdlm-progress]';
 
 // we're using a Set here for performance
 exports.YTDL_ARGS_WITH_VALUES = new Set(YTDL_ARGS_WITH_VALUES);
