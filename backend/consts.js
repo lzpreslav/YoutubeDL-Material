@@ -334,6 +334,8 @@ const YTDL_ARGS_WITH_VALUES = [
 
 exports.SUBSCRIPTION_BACKUP_PATH = 'subscription_backup.json'
 
+exports.DOWNLOAD_PROGRESS_PREFIX = '[ytdlm-progress]';
+
 // we're using a Set here for performance
 exports.YTDL_ARGS_WITH_VALUES = new Set(YTDL_ARGS_WITH_VALUES);
 

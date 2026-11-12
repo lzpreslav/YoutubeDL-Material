@@ -1439,7 +1439,7 @@ app.get('/api/thumbnail/:path', optionalJwt, async (req, res) => {
 const DOWNLOAD_LIST_OMITTED_FIELDS = ['prefetched_info', 'options', 'args', 'files_to_check_for_progress'];
 
 function summarizeDownload(download) {
-    const summary = {...download};
+    const summary = downloader_api.withLiveProgress(download);
     for (const field of DOWNLOAD_LIST_OMITTED_FIELDS) delete summary[field];
     if (download.container) {
         const {uid, id, uids} = download.container;
@@ -1464,7 +1464,7 @@ app.post('/api/download', optionalJwt, async (req, res) => {
     const download = await db_api.getRecord('download_queue', {uid: download_uid});
 
     if (download) {
-        res.send({download: download});
+        res.send({download: downloader_api.withLiveProgress(download)});
     } else {
         res.send({download: null});
     }

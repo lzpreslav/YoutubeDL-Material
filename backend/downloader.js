@@ -1,10 +1,12 @@
 const fs = require('fs-extra');
 const { v4: uuid } = require('uuid');
 const path = require('path');
+const { StringDecoder } = require('string_decoder');
 const NodeID3 = require('node-id3')
 const Mutex = require('async-mutex').Mutex;
 
 const logger = require('./logger');
+const CONSTS = require('./consts');
 const youtubedl_api = require('./youtube-dl');
 const config_api = require('./config');
 const twitch_api = require('./twitch');
@@ -20,6 +22,7 @@ const mutex = new Mutex();
 let should_check_downloads = true;
 
 const download_to_child_process = {};
+const download_progress = {};
 
 if (db_api.database_initialized) {
     exports.setupDownloads();
@@ -139,6 +142,11 @@ exports.clearDownload = async (download_uid) => {
     return await db_api.removeRecord('download_queue', {uid: download_uid});
 }
 
+exports.withLiveProgress = (download) => {
+    const percent_complete = download_progress[download['uid']];
+    return percent_complete === undefined ? {...download} : {...download, percent_complete: percent_complete};
+}
+
 async function handleDownloadError(download_uid, error_message, error_type = null) {
     if (!download_uid) return;
     const download = await db_api.getRecord('download_queue', {uid: download_uid});
@@ -150,6 +158,36 @@ async function handleDownloadError(download_uid, error_message, error_type = nul
 exports.setupDownloads = async () => {
     await fixDownloadState();
     setInterval(checkDownloads, 1000);
+}
+
+function getDownloadProcessArgs(download) {
+    if (config_api.getConfigItem('ytdl_default_downloader') !== 'yt-dlp') return [];
+
+    const progress_template = `download:${CONSTS.DOWNLOAD_PROGRESS_PREFIX} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(progress.filename)s`;
+    return ['--progress', '--newline', '--progress-delta', '1', '--progress-template', progress_template];
+}
+
+// Progress is read from the lines yt-dlp prints for each file it downloads, one video is usually
+// several files (video, audio, subtitles), so their bytes are summed against the expected total.
+function trackDownloadProgress(download, child_process) {
+    const expected_file_size = download['expected_file_size'];
+    const files = {};
+    const decoder = new StringDecoder('utf8');
+    let buffered = '';
+    child_process.stdout.on('data', chunk => {
+        const lines = (buffered + decoder.write(chunk)).split(/\r?\n/);
+        buffered = lines.pop();
+        for (const line of lines) {
+            if (!line.startsWith(CONSTS.DOWNLOAD_PROGRESS_PREFIX)) continue;
+            const [downloaded, total, total_estimate, ...filename] = line.slice(CONSTS.DOWNLOAD_PROGRESS_PREFIX.length).trim().split(' ');
+            files[filename.join(' ')] = {downloaded: Number(downloaded) || 0, total: Number(total) || Number(total_estimate) || 0};
+
+            const file_progresses = Object.values(files);
+            const downloaded_size = file_progresses.reduce((sum, file) => sum + file.downloaded, 0);
+            const total_size = expected_file_size || file_progresses.reduce((sum, file) => sum + file.total, 0);
+            if (total_size) download_progress[download['uid']] = Math.min(downloaded_size / total_size * 100, 100).toFixed(2);
+        }
+    });
 }
 
 async function fixDownloadState() {
@@ -274,21 +312,13 @@ exports.collectInfo = async (download_uid) => {
 
     const stripped_category = category ? {name: category['name'], uid: category['uid']} : null;
 
-    // setup info required to calculate download progress
-
     const expected_file_size = utils.getExpectedFileSize(info);
-
-    const files_to_check_for_progress = [];
-
-    // store info in download for future use
-    for (let info_obj of info) files_to_check_for_progress.push(utils.removeFileExtension(info_obj['_filename']));
 
     const title = info.length > 1 ? info[0]['playlist_title'] || info[0]['playlist'] : info[0]['title'];
     await db_api.updateRecord('download_queue', {uid: download_uid}, {args: args,
                                                                     finished_step: true,
                                                                     running: false,
                                                                     options: options,
-                                                                    files_to_check_for_progress: files_to_check_for_progress,
                                                                     expected_file_size: expected_file_size,
                                                                     title: title,
                                                                     category: stripped_category,
@@ -323,18 +353,22 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
 
         const start_time = Date.now();
 
-        const download_checker = setInterval(() => checkDownloadPercent(download['uid']), 1000);
         const file_objs = [];
         // download file
-        let {child_process, callback} = await youtubedl_api.runYoutubeDL(url, args, customDownloadHandler);
-        if (child_process) download_to_child_process[download['uid']] = child_process;
+        let {child_process, callback} = await youtubedl_api.runYoutubeDL(url, [...args, ...getDownloadProcessArgs(download)], customDownloadHandler);
+        if (child_process) {
+            download_to_child_process[download['uid']] = child_process;
+            trackDownloadProgress(download, child_process);
+        }
         const {parsed_output, err} = await callback;
-        clearInterval(download_checker);
+        const last_percent_complete = download_progress[download['uid']];
+        delete download_progress[download['uid']];
         let end_time = Date.now();
         let difference = (end_time - start_time)/1000;
         logger.debug(`${type === 'audio' ? 'Audio' : 'Video'} download delay: ${difference} seconds.`);
         if (!parsed_output) {
             const errored_download = await db_api.getRecord('download_queue', {uid: download_uid});
+            if (errored_download && last_percent_complete) await db_api.updateRecord('download_queue', {uid: download_uid}, {percent_complete: last_percent_complete});
             if (errored_download && errored_download['paused']) {
                 resolve(false);
                 return;
@@ -593,45 +627,6 @@ function filterArgs(args, isAudio) {
     const video_only_args = ['--add-metadata', '--embed-subs', '--xattrs'];
     const audio_only_args = ['-x', '--extract-audio', '--embed-thumbnail'];
     return utils.filterArgs(args, isAudio ? video_only_args : audio_only_args);
-}
-
-async function checkDownloadPercent(download_uid) {
-    /*
-    This is more of an art than a science, we're just selecting files that start with the file name,
-    thus capturing the parts being downloaded in files named like so: '<video title>.<format>.<ext>.part'.
-
-    Any file that starts with <video title> will be counted as part of the "bytes downloaded", which will
-    be divided by the "total expected bytes."
-    */
-
-    const download = await db_api.getRecord('download_queue', {uid: download_uid});
-    if (!download) return;
-    const files_to_check_for_progress = download['files_to_check_for_progress'];
-    const resulting_file_size = download['expected_file_size'];
-
-    if (!resulting_file_size) return;
-
-    let sum_size = 0;
-    for (let i = 0; i < files_to_check_for_progress.length; i++) {
-        const file_to_check_for_progress = files_to_check_for_progress[i];
-        const dir = path.dirname(file_to_check_for_progress);
-        if (!fs.existsSync(dir)) continue;
-        fs.readdir(dir, async (err, files) => {
-            for (let j = 0; j < files.length; j++) {
-                const file = files[j];
-                if (!file.includes(path.basename(file_to_check_for_progress))) continue;
-                try {
-                    const file_stats = fs.statSync(path.join(dir, file));
-                    if (file_stats && file_stats.size) {
-                        sum_size += file_stats.size;
-                    }
-                } catch (e) {}
-            }
-            
-            const percent_complete = (sum_size/resulting_file_size * 100).toFixed(2);
-            await db_api.updateRecord('download_queue', {uid: download_uid}, {percent_complete: percent_complete});
-        });
-    }
 }
 
 exports.generateNFOFile = (info, output_path) => {

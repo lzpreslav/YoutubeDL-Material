@@ -60,7 +60,8 @@ const runYoutubeDLProcess = async (url, args, youtubedl_fork = config_api.getCon
     const callback = new Promise(async resolve => {
         try {
             const {stdout, stderr} = await child_process;
-            const parsed_output = utils.parseOutputJSON(stdout.trim().split(/\r?\n/), stderr);
+            const output_lines = stdout.trim().split(/\r?\n/).filter(line => !line.startsWith(CONSTS.DOWNLOAD_PROGRESS_PREFIX));
+            const parsed_output = utils.parseOutputJSON(output_lines, stderr);
             resolve({parsed_output, err: stderr});
         } catch (e) {
             resolve({parsed_output: null, err: e})
