@@ -7,4 +7,5 @@ export enum NotificationAction {
     RETRY_DOWNLOAD = 'retry_download',
     VIEW_DOWNLOAD_ERROR = 'view_download_error',
     VIEW_TASKS = 'view_tasks',
+    VIEW_SUBSCRIPTION = 'view_subscription',
 }

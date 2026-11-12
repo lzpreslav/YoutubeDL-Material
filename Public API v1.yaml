@@ -3002,12 +3002,14 @@ components:
       - retry_download
       - view_download_error
       - view_tasks
+      - view_subscription
     NotificationType:
       type: string
       enum:
       - download_complete
       - download_error
       - task_finished
+      - subscription_check_error
     BaseChangePermissionsRequest:
       required:
         - permission

@@ -11,25 +11,29 @@ const { gotify } = require("gotify");
 const NOTIFICATION_TYPE_TO_TITLE = {
     task_finished: 'Task finished',
     download_complete: 'Download complete',
-    download_error: 'Download error'
+    download_error: 'Download error',
+    subscription_check_error: 'Subscription check failed'
 }
 
 const NOTIFICATION_TYPE_TO_BODY = {
     task_finished: (notification) => notification['data']['task_title'],
     download_complete: (notification) => {return `${notification['data']['file_title']}\nOriginal URL: ${notification['data']['original_url']}`},
-    download_error: (notification) => {return `Error: ${notification['data']['download_error_message']}\nError code: ${notification['data']['download_error_type']}\n\nOriginal URL: ${notification['data']['download_url']}`}
+    download_error: (notification) => {return `Error: ${notification['data']['download_error_message']}\nError code: ${notification['data']['download_error_type']}\n\nOriginal URL: ${notification['data']['download_url']}`},
+    subscription_check_error: (notification) => {return `Subscription: ${notification['data']['sub_name']}\nError: ${notification['data']['error_message']}`}
 }
 
 const NOTIFICATION_TYPE_TO_URL = {
     task_finished: () => {return `${utils.getBaseURL()}/#/tasks`},
     download_complete: (notification) => {return `${utils.getBaseURL()}/#/player;uid=${notification['data']['file_uid']}`},
     download_error: () => {return `${utils.getBaseURL()}/#/downloads`},
+    subscription_check_error: (notification) => {return `${utils.getBaseURL()}/#/subscription;id=${notification['data']['sub_id']}`},
 }
 
 const NOTIFICATION_TYPE_TO_THUMBNAIL = {
     task_finished: () => null,
     download_complete: (notification) => notification['data']['file_thumbnail'],
-    download_error: () => null
+    download_error: () => null,
+    subscription_check_error: () => null
 }
 
 exports.sendNotification = async (notification) => {
@@ -82,6 +86,15 @@ exports.sendDownloadErrorNotification = async (download, user_uid, error_message
     if (!notificationEnabled('download_error')) return;
     const data = {download_uid: download.uid, download_url: download.url, download_error_message: error_message, download_error_type: error_type};
     const notification = exports.createNotification('download_error', ['view_download_error', 'retry_download'], data, user_uid);
+    return await exports.sendNotification(notification);
+}
+
+exports.sendSubscriptionCheckErrorNotification = async (sub, error_message) => {
+    if (!notificationEnabled('subscription_check_error')) return;
+    // a subscription that keeps failing shows up once in the notification list
+    await db_api.removeAllRecords('notifications', {type: 'subscription_check_error', 'data.sub_id': sub.id});
+    const data = {sub_id: sub.id, sub_name: sub.name, error_message: error_message};
+    const notification = exports.createNotification('subscription_check_error', ['view_subscription'], data, sub.user_uid);
     return await exports.sendNotification(notification);
 }
 

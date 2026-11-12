@@ -12,6 +12,7 @@ const debugMode = process.env.YTDL_MODE === 'debug';
 
 const db_api = require('./db');
 const downloader_api = require('./downloader');
+const notifications_api = require('./notifications');
 
 exports.subscribe = async (sub, user_uid = null, skip_get_info = false) => {
     const result_obj = {
@@ -298,7 +299,9 @@ async function _getVideosForSub(sub) {
     updateSubscriptionProperty(sub, {downloading: false, child_process: null}, user_uid);
     const output_jsons = parsed_output || partial_output;
     if (!output_jsons || (!parsed_output && output_jsons.length === 0)) {
-        logger.error(`Subscription check failed for ${sub.name || sub.url}: ${utils.getCleanYoutubeDLError(err)}`);
+        const detail = getCheckErrorDetail(err);
+        logger.error(`Subscription check failed for ${sub.name || sub.url}: ${detail}`);
+        await notifications_api.sendSubscriptionCheckErrorNotification(sub, detail);
         return null;
     }
     if (!parsed_output) logger.warn(`Subscription check for ${sub.name || sub.url} skipped videos that failed: ${utils.getCleanYoutubeDLError(err)}`);
@@ -313,6 +316,12 @@ async function _getVideosForSub(sub) {
     logger.verbose('Subscription: finished check for ' + sub.name);
     const files_to_download = await handleOutputJSON(output_jsons, sub, user_uid);
     return files_to_download;
+}
+
+function getCheckErrorDetail(err) {
+    const detail = utils.getCleanYoutubeDLError(err);
+    const cookies_expired = err && typeof err.stderr === 'string' && err.stderr.includes('cookies are no longer valid');
+    return cookies_expired ? `The YouTube cookies have expired, upload new ones in the settings. ${detail}` : detail;
 }
 
 async function handleOutputJSON(output_jsons, sub, user_uid) {
