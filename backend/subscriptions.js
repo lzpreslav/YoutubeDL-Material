@@ -206,35 +206,51 @@ exports.deleteSubscriptionFile = async (sub, file, deleteForever, file_uid = nul
     }
 }
 
-let current_sub_index = 0; // To keep track of the current subscription
+let subscriptions_check_running = false;
 exports.watchSubscriptionsInterval = async () => {
     const subscriptions_check_interval = config_api.getConfigItem('ytdl_subscriptions_check_interval');
-    let parent_interval = setInterval(() => watchSubscriptions(), subscriptions_check_interval*1000);
-    watchSubscriptions();
+    let parent_interval = setInterval(() => exports.checkSubscriptions(), subscriptions_check_interval*1000);
+    exports.checkSubscriptions();
     config_api.config_updated.subscribe(change => {
         if (!change) return;
         if (change['key'] === 'ytdl_subscriptions_check_interval' || change['key'] === 'ytdl_multi_user_mode') {
-            current_sub_index = 0; // TODO: start after the last sub check
             logger.verbose('Resetting sub check schedule due to config change');
             clearInterval(parent_interval);
             const new_interval = config_api.getConfigItem('ytdl_subscriptions_check_interval');
-            parent_interval = setInterval(() => watchSubscriptions(), new_interval*1000);
-            watchSubscriptions();
+            parent_interval = setInterval(() => exports.checkSubscriptions(), new_interval*1000);
+            exports.checkSubscriptions();
         }
     });
 }
 
-async function watchSubscriptions() {
-    const subscription_ids = await getValidSubscriptionsToCheck();
-    if (subscription_ids.length === 0) {
-        logger.verbose('Skipping subscription check as no valid subscriptions exist.');
+// checks every unpaused subscription, one at a time
+exports.checkSubscriptions = async () => {
+    if (subscriptions_check_running) {
+        logger.verbose('Skipping subscription check as the previous one is still running.');
         return;
     }
-    checkSubscription(subscription_ids[current_sub_index]);
-    current_sub_index = (current_sub_index + 1) % subscription_ids.length;
+    subscriptions_check_running = true;
+    try {
+        const subscription_ids = await getValidSubscriptionsToCheck();
+        if (!subscription_ids || subscription_ids.length === 0) {
+            logger.verbose('Skipping subscription check as no valid subscriptions exist.');
+            return;
+        }
+        for (const subscription_id of subscription_ids) {
+            try {
+                await checkSubscription(subscription_id);
+            } catch (e) {
+                logger.error(`Subscription check failed for subscription ${subscription_id}: ${e.message}`);
+            }
+        }
+    } finally {
+        subscriptions_check_running = false;
+    }
 }
 
 async function checkSubscription(sub_id) {
+    const sub_exists = await db_api.getRecord('subscriptions', {id: sub_id});
+    if (!sub_exists) return;
     let sub = await exports.getSubscription(sub_id);
 
     // don't check the sub if the last check for the same subscription has not completed
@@ -248,7 +264,7 @@ async function checkSubscription(sub_id) {
         return;
     }
 
-    await exports.getVideosForSub(sub.id);
+    await _getVideosForSub(sub);
 }
 
 async function getValidSubscriptionsToCheck() {
