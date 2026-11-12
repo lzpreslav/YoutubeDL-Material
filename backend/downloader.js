@@ -89,7 +89,10 @@ exports.pauseDownload = async (download_uid) => {
     }
 
     killActiveDownload(download);
-    return await db_api.updateRecord('download_queue', {uid: download_uid}, {paused: true, running: false});
+    const update_obj = {paused: true, running: false};
+    // the download step runs again on resume and continues from the partial files
+    if (download['step_index'] === 2) Object.assign(update_obj, {step_index: 1, finished_step: true});
+    return await db_api.updateRecord('download_queue', {uid: download_uid}, update_obj);
 }
 
 exports.resumeDownload = async (download_uid) => {
@@ -332,7 +335,10 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
         logger.debug(`${type === 'audio' ? 'Audio' : 'Video'} download delay: ${difference} seconds.`);
         if (!parsed_output) {
             const errored_download = await db_api.getRecord('download_queue', {uid: download_uid});
-            if (errored_download && errored_download['paused']) return;
+            if (errored_download && errored_download['paused']) {
+                resolve(false);
+                return;
+            }
             const detail = utils.getCleanYoutubeDLError(err);
             logger.error(`Download failed for ${url}: ${detail}`);
             await handleDownloadError(download_uid, detail, 'unknown_error');
