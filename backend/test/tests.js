@@ -756,6 +756,46 @@ describe('Subscriptions', function() {
         });
     });
 
+    describe('Scheduled check', function() {
+        const original_run = youtubedl_api.runYoutubeDL;
+        const makeSub = (name, paused) => ({...new_sub, name: name, url: `https://example.com/${name}`, id: uuid(), paused: paused});
+        const subs = [makeSub('scheduled_first', false), makeSub('scheduled_paused', true), makeSub('scheduled_second', false)];
+        let checked_urls = [];
+        let running_checks = 0;
+        let max_running_checks = 0;
+
+        beforeEach(async function() {
+            checked_urls = [];
+            running_checks = 0;
+            max_running_checks = 0;
+            for (const sub of subs) await db_api.insertRecordIntoTable('subscriptions', {...sub});
+            youtubedl_api.runYoutubeDL = async (url) => {
+                checked_urls.push(url);
+                running_checks++;
+                max_running_checks = Math.max(max_running_checks, running_checks);
+                const callback = new Promise(resolve => setTimeout(() => {
+                    running_checks--;
+                    resolve({parsed_output: [], err: ''});
+                }, 50));
+                return {child_process: null, callback: callback};
+            };
+        });
+        afterEach(async function() {
+            youtubedl_api.runYoutubeDL = original_run;
+            for (const sub of subs) await fs.remove(path.join('subscriptions', 'channels', sub.name));
+        });
+
+        it('Checks every unpaused subscription, one at a time', async function() {
+            await subscriptions_api.checkSubscriptions();
+            assert.deepStrictEqual(checked_urls, [subs[0].url, subs[2].url]);
+            assert(max_running_checks === 1);
+        });
+        it('Does not start a second round while one is running', async function() {
+            await Promise.all([subscriptions_api.checkSubscriptions(), subscriptions_api.checkSubscriptions()]);
+            assert.deepStrictEqual(checked_urls, [subs[0].url, subs[2].url]);
+        });
+    });
+
     describe('Failed check', function() {
         const original_run = youtubedl_api.runYoutubeDL;
         const getNotifications = () => db_api.getRecords('notifications', {type: 'subscription_check_error'});
