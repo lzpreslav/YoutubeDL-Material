@@ -192,6 +192,13 @@
                 <mat-hint><ng-container i18n="Download rate limit input hint">Rate limits your downloads to the specified amount. Ex: 200K</ng-container></mat-hint>
               </mat-form-field>
             </div>
+            <div class="col-12 mt-2 mb-4">
+              <mat-form-field class="text-field" color="accent">
+                <mat-label i18n="Temporary download folder">Temporary download folder</mat-label>
+                <input [(ngModel)]="new_config['Downloader']['temp_download_path']" matInput>
+                <mat-hint><ng-container i18n="Temporary download folder input hint">Files download here and move to their folder when complete. Leave empty to disable.</ng-container></mat-hint>
+              </mat-form-field>
+            </div>
           </div>
         </div>
       }

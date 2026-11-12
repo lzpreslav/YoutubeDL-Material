@@ -1479,6 +1479,7 @@ app.post('/api/clearDownloads', optionalJwt, async (req, res) => {
     if (clear_finished) success &= await db_api.removeAllRecords('download_queue', {finished: true,        user_uid: user_uid});
     if (clear_paused)   success &= await db_api.removeAllRecords('download_queue', {paused:   true,        user_uid: user_uid});
     if (clear_errors)   success &= await db_api.removeAllRecords('download_queue', {error:    {$ne: null}, user_uid: user_uid});
+    await downloader_api.sweepTempDownloads();
     res.send({success: success});
 });
 

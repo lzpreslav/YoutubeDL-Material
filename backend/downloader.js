@@ -24,6 +24,9 @@ let should_check_downloads = true;
 const download_to_child_process = {};
 const download_progress = {};
 
+// only folders named like a download uid are ever removed from the temporary download folder
+const TEMP_DIR_NAME_REGEX = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+
 if (db_api.database_initialized) {
     exports.setupDownloads();
 } else {
@@ -116,7 +119,7 @@ exports.restartDownload = async (download_uid) => {
     const download = await db_api.getRecord('download_queue', {uid: download_uid});
     await exports.clearDownload(download_uid);
     const new_download = await exports.createDownload(download['url'], download['type'], download['options'], download['user_uid']);
-    
+
     should_check_downloads = true;
     return new_download;
 }
@@ -135,11 +138,15 @@ exports.cancelDownload = async (download_uid) => {
 
     killActiveDownload(download);
     await handleDownloadError(download_uid, 'Cancelled', 'cancelled');
+    await removeTempDir(download);
     return await db_api.updateRecord('download_queue', {uid: download_uid}, {cancelled: true});
 }
 
 exports.clearDownload = async (download_uid) => {
-    return await db_api.removeRecord('download_queue', {uid: download_uid});
+    const download = await db_api.getRecord('download_queue', {uid: download_uid});
+    const success = await db_api.removeRecord('download_queue', {uid: download_uid});
+    if (download) await removeTempDir(download);
+    return success;
 }
 
 exports.withLiveProgress = (download) => {
@@ -157,14 +164,61 @@ async function handleDownloadError(download_uid, error_message, error_type = nul
 
 exports.setupDownloads = async () => {
     await fixDownloadState();
+    await exports.sweepTempDownloads();
     setInterval(checkDownloads, 1000);
+}
+
+function getTempRoot() {
+    if (config_api.getConfigItem('ytdl_default_downloader') !== 'yt-dlp') return null;
+    return config_api.getConfigItem('ytdl_temp_download_path') || null;
+}
+
+function getTempDir(download) {
+    const temp_root = getTempRoot();
+    return temp_root ? path.join(temp_root, download['uid']) : null;
+}
+
+async function removeTempDir(download) {
+    const temp_dir = getTempDir(download);
+    if (!temp_dir) return;
+    try {
+        await fs.remove(temp_dir);
+    } catch (e) {
+        logger.warn(`Failed to remove temporary download folder ${temp_dir}: ${e.message}`);
+    }
+}
+
+// partial files are only kept for unfinished downloads, which continue from them
+exports.sweepTempDownloads = async () => {
+    try {
+        const temp_root = getTempRoot();
+        if (!temp_root || !(await fs.pathExists(temp_root))) return;
+
+        const downloads = await db_api.getRecords('download_queue');
+        const unfinished = new Set(downloads.filter(download => !download['finished']).map(download => download['uid']));
+
+        for (const name of await fs.readdir(temp_root)) {
+            if (!TEMP_DIR_NAME_REGEX.test(name) || unfinished.has(name)) continue;
+            const temp_dir = path.join(temp_root, name);
+            await fs.remove(temp_dir);
+            logger.verbose(`Removed leftover temporary download folder ${temp_dir}`);
+        }
+    } catch (e) {
+        logger.warn(`Failed to clean up the temporary download folder: ${e.message}`);
+    }
 }
 
 function getDownloadProcessArgs(download) {
     if (config_api.getConfigItem('ytdl_default_downloader') !== 'yt-dlp') return [];
 
     const progress_template = `download:${CONSTS.DOWNLOAD_PROGRESS_PREFIX} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(progress.filename)s`;
-    return ['--progress', '--newline', '--progress-delta', '1', '--progress-template', progress_template];
+    const process_args = ['--progress', '--newline', '--progress-delta', '1', '--progress-template', progress_template];
+
+    const temp_dir = getTempDir(download);
+    const args_set_paths = download['args'].some(arg => arg === '-P' || arg === '--paths' || arg.startsWith('--paths='));
+    if (temp_dir && !args_set_paths) process_args.push('--paths', `temp:${path.resolve(temp_dir)}`);
+
+    return process_args;
 }
 
 // Progress is read from the lines yt-dlp prints for each file it downloads, one video is usually
@@ -368,14 +422,20 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
         logger.debug(`${type === 'audio' ? 'Audio' : 'Video'} download delay: ${difference} seconds.`);
         if (!parsed_output) {
             const errored_download = await db_api.getRecord('download_queue', {uid: download_uid});
-            if (errored_download && last_percent_complete) await db_api.updateRecord('download_queue', {uid: download_uid}, {percent_complete: last_percent_complete});
-            if (errored_download && errored_download['paused']) {
+            if (!errored_download || errored_download['error_type'] === 'cancelled') {
+                await removeTempDir(download);
+                resolve(false);
+                return;
+            }
+            if (last_percent_complete) await db_api.updateRecord('download_queue', {uid: download_uid}, {percent_complete: last_percent_complete});
+            if (errored_download['paused']) {
                 resolve(false);
                 return;
             }
             const detail = utils.getCleanYoutubeDLError(err);
             logger.error(`Download failed for ${url}: ${detail}`);
             await handleDownloadError(download_uid, detail, 'unknown_error');
+            await removeTempDir(download);
             resolve(false);
             return;
         } else if (parsed_output) {
@@ -459,6 +519,7 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
 
             const file_uids = file_objs.map(file_obj => file_obj.uid);
             await db_api.updateRecord('download_queue', {uid: download_uid}, {finished_step: true, finished: true, running: false, step_index: 3, percent_complete: 100, file_uids: file_uids, container: container});
+            await removeTempDir(download);
             resolve(file_uids);
         }
     });

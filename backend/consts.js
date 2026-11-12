@@ -46,6 +46,10 @@ exports.CONFIG_ITEMS = {
         'key': 'ytdl_download_rate_limit',
         'path': 'YoutubeDLMaterial.Downloader.download_rate_limit'
     },
+    'ytdl_temp_download_path': {
+        'key': 'ytdl_temp_download_path',
+        'path': 'YoutubeDLMaterial.Downloader.temp_download_path'
+    },
 
     // Extra
     'ytdl_title_top': {
