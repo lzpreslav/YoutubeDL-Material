@@ -22,6 +22,7 @@ This is a fork of [Tzahi12345/YoutubeDL-Material](https://github.com/Tzahi12345/
 * **npm, npx and corepack are absent from the runtime image.** It only runs `node app.js`.
 * **Logs go to stdout/stderr** with a `LEVEL:` prefix and no timestamp, so a log collector can classify and stamp them. `error.log` is gone; `combined.log` still contains errors and still backs the in-app log viewer.
 * **Heroku and Electron targets removed.** Run the container image, or build from source.
+* **The "Kill all downloads" button and `/api/killAllDownloads` are removed.** Pause or cancel downloads from the downloads page instead.
 
 <hr>
 

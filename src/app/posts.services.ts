@@ -318,10 +318,6 @@ export class PostsService  {
         return this.http.post<TestConnectionStringResponse>(this.path + 'testConnectionString', body, this.httpOptions);
     }
 
-    killAllDownloads() {
-        return this.http.post<SuccessObject>(this.path + 'killAllDownloads', {}, this.httpOptions);
-    }
-
     getConfig() {
         if (isDevMode()) {
             return this.http.get('./assets/default.json');

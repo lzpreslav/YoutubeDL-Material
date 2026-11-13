@@ -257,35 +257,6 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  killAllDownloads(): void {
-    const done = new EventEmitter<boolean>();
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        dialogTitle: 'Kill downloads',
-        dialogText: 'Are you sure you want to kill all downloads? Any subscription and non-subscription downloads will end immediately, though this operation may take a minute or so to complete.',
-        submitText: 'Kill all downloads',
-        doneEmitter: done,
-        warnSubmitColor: true
-      }
-    });
-    done.subscribe(confirmed => {
-      if (confirmed) {
-        this.postsService.killAllDownloads().subscribe(res => {
-          if (res['success']) {
-            dialogRef.close();
-            this.postsService.openSnackBar($localize`Successfully killed all downloads!`);
-          } else {
-            dialogRef.close();
-            this.postsService.openSnackBar($localize`Failed to kill all downloads! Check logs for details.`);
-          }
-        }, () => {
-          dialogRef.close();
-          this.postsService.openSnackBar($localize`Failed to kill all downloads! Check logs for details.`);
-        });
-      }
-    });
-  }
-
   getDBInfo(): void {
     this.postsService.getDBInfo().subscribe(res => {
       this.db_info = res;

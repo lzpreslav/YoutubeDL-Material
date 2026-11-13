@@ -1,6 +1,5 @@
 const { v4: uuid } = require('uuid');
 const fs = require('fs-extra');
-const { promisify } = require('util');
 const auth_api = require('./authentication/auth');
 const path = require('path');
 const compression = require('compression');
@@ -12,7 +11,6 @@ const low = require('lowdb')
 const URL = require('url').URL;
 const CONSTS = require('./consts')
 const read_last_lines = require('read-last-lines');
-const ps = require('ps-node');
 const Feed = require('feed').Feed;
 const session = require('express-session');
 
@@ -231,54 +229,14 @@ async function startServer() {
 
     // graceful shutdown
     // kernel ignores signals for PID 1 without an explicit handler
-    const shutdown = async (signal) => {
+    const shutdown = (signal) => {
         logger.info(`Received ${signal}, shutting down.`);
-        // Don't wait forever on lingering keep-alive connections or a stuck kill.
+        // Don't wait forever on lingering keep-alive connections.
         setTimeout(() => process.exit(0), 5000).unref();
-        await killAllDownloads();
         server.close(() => process.exit(0));
     };
     // guard against multiple ctrl+c, once() fires the handler a single time per signal
     for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => shutdown(signal));
-}
-
-async function killAllDownloads() {
-    const lookupAsync = promisify(ps.lookup);
-    let resultList = null;
-
-    try {
-        resultList = await lookupAsync({
-            command: 'youtube-dl'
-        });
-    } catch (err) {
-        // failed to get list of processes
-        logger.error('Failed to get a list of running youtube-dl processes.');
-        logger.error(err);
-        return {
-            details: err,
-            success: false
-        };
-    }
-
-    // processes that contain the string 'youtube-dl' in the name will be looped
-    resultList.forEach(function( process ){
-        if (process) {
-            ps.kill(process.pid, 'SIGKILL', function( err ) {
-                if (err) {
-                    // failed to kill, process may have ended on its own
-                    logger.warn(`Failed to kill process with PID ${process.pid}`);
-                    logger.warn(err);
-                }
-                else {
-                    logger.verbose(`Process ${process.pid} has been killed!`);
-                }
-            });
-        }
-    });
-
-    return {
-        success: true
-    };
 }
 
 async function setAndLoadConfig() {
@@ -520,11 +478,6 @@ app.post('/api/downloadFile', optionalJwt, async function(req, res) {
     } else {
         res.sendStatus(500);
     }
-});
-
-app.post('/api/killAllDownloads', optionalJwt, async function(req, res) {
-    const result_obj = await killAllDownloads();
-    res.send(result_obj);
 });
 
 app.post('/api/generateArgs', optionalJwt, async function(req, res) {
