@@ -113,7 +113,15 @@ if (fs.existsSync('version.json')) {
     version_info = {'type': 'N/A', 'tag': 'N/A', 'commit': 'N/A', 'date': 'N/A'};
 }
 
-setAndLoadConfig();
+// a rejection in a request handler or background job is logged, only a failed startup exits
+process.on('unhandledRejection', err => {
+    logger.error(`Unhandled promise rejection: ${err && err.stack ? err.stack : err}`);
+});
+
+setAndLoadConfig().catch(err => {
+    logger.error(`Failed to start: ${err && err.stack ? err.stack : err}`);
+    process.exit(1);
+});
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
