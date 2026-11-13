@@ -28,8 +28,6 @@ import {
     GetDownloadRequest,
     GetFileRequest,
     GetFileResponse,
-    GetMp3sResponse,
-    GetMp4sResponse,
     GetPlaylistRequest,
     GetPlaylistResponse,
     GetRolesResponse,
@@ -87,7 +85,6 @@ import {
     GetTaskRequest,
     GetTaskResponse,
     UpdateTaskScheduleRequest,
-    UpdateTaskDataRequest,
     RestoreDBBackupRequest,
     Schedule,
     ClearDownloadsRequest,
@@ -269,14 +266,6 @@ export class PostsService  {
         return null;
     }
 
-    startHandshake(url: string) {
-        return this.http.get(url + 'geturl');
-    }
-
-    startHandshakeSSL(url: string) {
-        return this.http.get(url + 'geturl');
-    }
-
     reloadConfig() {
         this.getConfig().subscribe(res => {
             const result = !this.debugMode ? res['config_file'] : res;
@@ -341,10 +330,6 @@ export class PostsService  {
         }
     }
 
-    loadAsset(name) {
-        return this.http.get(`./assets/${name}`);
-    }
-
     getSupportedLocales() {
         return this.http.get('./assets/i18n/supported_locales.json');
     }
@@ -357,14 +342,6 @@ export class PostsService  {
     deleteFile(uid: string, blacklistMode = false) {
         const body: DeleteMp3Mp4Request = {uid: uid, blacklistMode: blacklistMode}
         return this.http.post(this.path + 'deleteFile', body, this.httpOptions);
-    }
-
-    getMp3s() {
-        return this.http.get<GetMp3sResponse>(this.path + 'getMp3s', this.httpOptions);
-    }
-
-    getMp4s() {
-        return this.http.get<GetMp4sResponse>(this.path + 'getMp4s', this.httpOptions);
     }
 
     getFile(uid: string, uuid: string = null) {
@@ -652,11 +629,6 @@ export class PostsService  {
     updateTaskSchedule(task_key: TaskType, schedule: Schedule) {
         const body: UpdateTaskScheduleRequest = {task_key: task_key, new_schedule: schedule};
         return this.http.post<SuccessObject>(this.path + 'updateTaskSchedule', body, this.httpOptions);
-    }
-
-    updateTaskData(task_key: TaskType, data: any) {
-        const body: UpdateTaskDataRequest = {task_key: task_key, new_data: data};
-        return this.http.post<SuccessObject>(this.path + 'updateTaskData', body, this.httpOptions);
     }
 
     updateTaskOptions(task_key: TaskType, options: any) {
