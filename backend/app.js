@@ -6,7 +6,6 @@ const path = require('path');
 const compression = require('compression');
 const multer  = require('multer');
 const express = require("express");
-const bodyParser = require("body-parser");
 const db_api = require('./db');
 const utils = require('./utils')
 const low = require('lowdb')
@@ -137,8 +136,8 @@ config_api.configExistsCheck();
 
 setAndLoadConfig();
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
 // use passport
 app.use(auth_api.passport.initialize());
