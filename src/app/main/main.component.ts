@@ -452,14 +452,12 @@ export class MainComponent implements OnInit {
       return true;
     }
     
-    // tslint:disable-next-line: max-line-length
     const strRegex = /((([A-Za-z]{3,9}:(?:\/\/)?)(?:[-;:&=\+\$,\w]+@)?[A-Za-z0-9.-]+|(?:www.|[-;:&=\+\$,\w]+@)[A-Za-z0-9.-]+)((?:\/[\+~%\/.\w-_]*)?\??(?:[-\+=&;%@.\w_]*)#?(?:[\w]*))?)/;
     const re = new RegExp(strRegex);
     const valid = re.test(str);
 
     if (!valid) { return false; }
 
-    // tslint:disable-next-line: max-line-length
     const youtubeStrRegex = /(?:http(?:s)?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:(?:watch)?\?(?:.*&)?v(?:i)?=|(?:embed|v|vi|user)\/))([^\?&\"'<> #]+)/;
     const reYT = new RegExp(youtubeStrRegex);
     const ytValid = true || reYT.test(str);

@@ -127,7 +127,6 @@ function binarySearch(arr, key, n) {
   let max = arr.length - 1;
   let mid;
   while (min <= max) {
-    // tslint:disable-next-line: no-bitwise
     mid = (min + max) >>> 1;
     if (arr[mid][key] === n) {
       return mid;

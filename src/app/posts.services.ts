@@ -287,7 +287,6 @@ export class PostsService  {
         });
     }
 
-    // tslint:disable-next-line: max-line-length
     downloadFile(url: string, type: FileType, selectedQuality: string, customQualityConfiguration: string, customArgs: string = null, additionalArgs: string = null, customOutput: string = null, youtubeUsername: string = null, youtubePassword: string = null, cropFileSettings: CropFileSettings = null) {
         const body: DownloadRequest = {url: url,
             maxHeight: selectedQuality,
