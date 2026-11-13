@@ -733,7 +733,7 @@ exports.transferDB = async (local_to_remote) => {
             return false;
         }
     }
-    success = true;
+    let success = true;
 
     logger.debug('Clearing new database before transfer...');
 
