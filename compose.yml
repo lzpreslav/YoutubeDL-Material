@@ -12,6 +12,6 @@ services:
       - ./users:/app/users
     ports:
       - "8998:17442"
-    image: lzpreslav/youtubedl-material:latest
+    image: ghcr.io/lzpreslav/youtubedl-material:latest
 volumes:
   appdata:
