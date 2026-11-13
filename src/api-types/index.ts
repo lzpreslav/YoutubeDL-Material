@@ -42,7 +42,6 @@ export type { DownloadRequest } from './models/DownloadRequest';
 export type { DownloadResponse } from './models/DownloadResponse';
 export type { DownloadTwitchChatByVODIDRequest } from './models/DownloadTwitchChatByVODIDRequest';
 export type { DownloadTwitchChatByVODIDResponse } from './models/DownloadTwitchChatByVODIDResponse';
-export type { DownloadVideosForSubscriptionRequest } from './models/DownloadVideosForSubscriptionRequest';
 export { FileType } from './models/FileType';
 export { FileTypeFilter } from './models/FileTypeFilter';
 export type { GenerateArgsResponse } from './models/GenerateArgsResponse';

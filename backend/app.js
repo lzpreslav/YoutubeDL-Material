@@ -938,16 +938,6 @@ app.post('/api/getSubscription', optionalJwt, async (req, res) => {
     }
 });
 
-app.post('/api/downloadVideosForSubscription', optionalJwt, async (req, res) => {
-    const subID = req.body.subID;
-
-    const sub = subscriptions_api.getSubscription(subID);
-    subscriptions_api.getVideosForSub(sub.id);
-    res.send({
-        success: true
-    });
-});
-
 app.post('/api/updateSubscription', optionalJwt, async (req, res) => {
     const updated_sub = req.body.subscription;
 
