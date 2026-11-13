@@ -3,7 +3,7 @@
 [![GitHub issues badge](https://img.shields.io/github/issues/lzpreslav/YoutubeDL-Material)](https://github.com/lzpreslav/YoutubeDL-Material/issues)
 [![License badge](https://img.shields.io/github/license/lzpreslav/YoutubeDL-Material)](https://github.com/lzpreslav/YoutubeDL-Material/blob/master/LICENSE.md)
 
-YoutubeDL-Material is a Material Design frontend for [youtube-dl](https://rg3.github.io/youtube-dl/). It's coded using [Angular 15](https://angular.io/) for the frontend, and [Node.js](https://nodejs.org/) on the backend.
+YoutubeDL-Material is a Material Design frontend for [yt-dlp](https://github.com/yt-dlp/yt-dlp). It's coded using [Angular](https://angular.dev/) for the frontend, and [Node.js](https://nodejs.org/) on the backend.
 
 Now with [Docker](#Docker) support!
 
@@ -21,6 +21,7 @@ This is a fork of [Tzahi12345/YoutubeDL-Material](https://github.com/Tzahi12345/
 * **32-bit ARM images are no longer built.**
 * **npm, npx and corepack are absent from the runtime image.** It only runs `node app.js`.
 * **Logs go to stdout/stderr** with a `LEVEL:` prefix and no timestamp, so a log collector can classify and stamp them. `error.log` is gone; `combined.log` still contains errors and still backs the in-app log viewer.
+* **Heroku and Electron targets removed.** Run the container image, or build from source.
 
 <hr>
 
@@ -42,93 +43,56 @@ NOTE: If you would like to use Docker, you can skip down to the [Docker](#Docker
 
 Required dependencies:
 
-* Node.js 16
-* Python
+* Node.js 24
+* Python 3
+* ffmpeg
 
 Optional dependencies:
 
 * AtomicParsley (for embedding thumbnails, package name `atomicparsley`)
 * [Twitch Downloader CLI](https://github.com/lay295/TwitchDownloader) (for downloading Twitch VOD chats)
 
-<details>
-  <summary>Debian/Ubuntu</summary>
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-sudo apt-get install nodejs youtube-dl ffmpeg unzip python npm
-```
-
-</details>
-
-<details>
-  <summary>CentOS 7</summary>
-
-```bash
-sudo yum install epel-release
-sudo yum localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm
-sudo yum install centos-release-scl-rh
-sudo yum install rh-nodejs12
-scl enable rh-nodejs12 bash
-curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
-sudo yum install nodejs youtube-dl ffmpeg ffmpeg-devel
-```
-
-</details>
-
-### Installing
-
-If you are using Docker, skip to the [Docker](#Docker) section. Otherwise, continue:
-
-1. First, download the [latest release](https://github.com/Tzahi12345/YoutubeDL-Material/releases/latest)!
-
-2. Drag the `youtubedl-material` directory to an easily accessible directory. Navigate to the `appdata` folder and edit the `default.json` file.
-
-NOTE: If you are intending to use a [reverse proxy](https://github.com/Tzahi12345/YoutubeDL-Material/wiki/Reverse-Proxy-Setup), this next step is not necessary
-
-3. Port forward the port listed in `default.json`, which defaults to `17442`.
-
-4. Once the configuration is done, run `npm install` to install all the backend dependencies. Once that is finished, type `npm start`. This will run the backend server, which serves the frontend as well. On your browser, navigate to to the server (url with the specified port). Try putting in a youtube link to see if it works. If it does, viola! YoutubeDL-Material is now up and running.
-
-If you experience problems, know that it's usually caused by a configuration problem. The first thing you should do is check the console. To get there, right click anywhere on the page and click "Inspect element." Then on the menu that pops up, click console. Look at the error there, and try to investigate.
-
 ## Build it yourself
 
-If you'd like to install YoutubeDL-Material, go to the Installation section. If you want to build it yourself and/or develop the repository, then this section is for you.
+Clone the repository, then install the dependencies and build the frontend from the repository root:
 
-To deploy, simply clone the repository, and go into the `youtubedl-material` directory. Type `npm install` and all the dependencies will install. Then type `cd backend` and again type `npm install` to install the dependencies for the backend.
+```bash
+npm install
+npm run build
+```
 
-Once you do that, you're almost up and running. All you need to do is edit the configuration in `youtubedl-material/appdata`, go back into the `youtubedl-material` directory, and type `npm run build`. This will build the app, and put the output files in the `youtubedl-material/backend/public` folder.
+This puts the frontend in `backend/public`. Then install and start the backend, which serves the frontend as well:
 
-The frontend is now complete. The backend is much easier. Just go into the `backend` folder, and type `npm start`.
+```bash
+cd backend
+npm install
+npm start
+```
 
-Finally, if you want your instance to be available from outside your network, you can set up a [reverse proxy](https://github.com/Tzahi12345/YoutubeDL-Material/wiki/Reverse-Proxy-Setup).
+The configuration lives in `backend/appdata/default.json` and is created with default values on the first start. The app listens on the port set there, which defaults to `17442`.
 
-Alternatively, you can port forward the port specified in the config (defaults to `17442`) and point it to the server's IP address. Make sure the port is also allowed through the server's firewall.
+If you want your instance to be available from outside your network, you can set up a [reverse proxy](https://github.com/Tzahi12345/YoutubeDL-Material/wiki/Reverse-Proxy-Setup).
 
 ## Docker
 
-### Host-specific instructions
-
-If you're on a Synology NAS, unRAID, Raspberry Pi 4 or any other possible special case you can check if there's known issues or instructions both in the issue tracker and in the [Wiki!](https://github.com/Tzahi12345/YoutubeDL-Material/wiki#environment-specific-guideshelp)
-
 ### Setup
 
-If you are looking to setup YoutubeDL-Material with Docker, this section is for you. And you're in luck! Docker setup is quite simple.
+Images are published to `ghcr.io/lzpreslav/youtubedl-material`.
 
-1. Run `curl -L https://github.com/Tzahi12345/YoutubeDL-Material/releases/latest/download/docker-compose.yml -o docker-compose.yml` to download the latest Docker Compose, or go to the [releases](https://github.com/Tzahi12345/YoutubeDL-Material/releases/) page to grab the version you'd like.
-2. Run `docker-compose pull`. This will download the official YoutubeDL-Material docker image.
-3. Run `docker-compose up` to start it up. If successful, it should say "HTTP(S): Started on port 17443" or something similar. This tells you the *container-internal* port of the application. Please check your `docker-compose.yml` file for the *external* port. If you downloaded the file as described above, it defaults to **8998**.
+1. Download [`compose.yml`](compose.yml) from this repository.
+2. Run `docker compose pull` to download the image.
+3. Run `docker compose up` to start it up. If successful, it should say "YoutubeDL-Material started on PORT 17442" or something similar. This tells you the *container-internal* port of the application. Please check your `compose.yml` file for the *external* port, which defaults to **8998**.
 4. Make sure you can connect to the specified URL + *external* port, and if so, you are done!
 
 ### Custom UID/GID
 
-By default, the Docker container runs as non-root with UID=1000 and GID=1000. To set this to your own UID/GID, simply update the `environment` section in your `docker-compose.yml` like so:
+To run the app as a specific user, start the container as that user. In your `compose.yml`:
 
 ```yml
-environment:
-    UID: YOUR_UID
-    GID: YOUR_GID
+user: "YOUR_UID:YOUR_GID"
 ```
+
+The mounted folders must be writable by that user.
 
 ### Logging
 
