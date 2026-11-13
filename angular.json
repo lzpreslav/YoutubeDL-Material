@@ -8,10 +8,7 @@
       "sourceRoot": "src",
       "projectType": "application",
       "i18n": {
-        "sourceLocale": "en-US",
-        "locales": {
-          "es": "src/locale/messages.es.xlf"
-        }
+        "sourceLocale": "en-US"
       },
       "architect": {
         "build": {
@@ -28,10 +25,7 @@
             ],
             "assets": [
               "src/assets",
-              "src/favicon.ico",
-              "src/backend/audio",
-              "src/backend/video",
-              "src/backend"
+              "src/favicon.ico"
             ],
             "styles": [
               "src/styles.scss",
@@ -66,9 +60,6 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ]
-            },
-            "es": {
-              "localize": ["es"]
             }
           },
           "defaultConfiguration": ""
@@ -81,9 +72,6 @@
           "configurations": {
             "production": {
               "buildTarget": "youtube-dl-material:build:production"
-            },
-            "es": {
-              "buildTarget": "youtube-dl-material:build:es"
             }
           }
         },
