@@ -152,13 +152,18 @@ async function checkMigrations() {
 
     const new_db_system_migration_complete = db.get('new_db_system_migration_complete').value();
     if (!new_db_system_migration_complete) {
-        logger.info('Beginning migration: 4.2->4.3+')
-        let success = await db_api.importJSONToDB(db.value(), users_db.value());
-        await tasks_api.setupTasks(); // necessary as tasks were not properly initialized at first
+        // the import replaces every table, so it only runs against a database that holds no user data
+        if (await db_api.hasUserData()) {
+            logger.warn('Skipping migration 4.2->4.3+ as the database already contains data.');
+        } else {
+            logger.info('Beginning migration: 4.2->4.3+')
+            let success = await db_api.importJSONToDB(db.value(), users_db.value());
+            await tasks_api.setupTasks(); // necessary as tasks were not properly initialized at first
+            if (success) { logger.info('4.2->4.3+ migration complete!'); }
+            else { logger.error('Migration failed: 4.2->4.3+'); }
+        }
         // sets migration to complete
         db.set('new_db_system_migration_complete', true).write();
-        if (success) { logger.info('4.2->4.3+ migration complete!'); }
-        else { logger.error('Migration failed: 4.2->4.3+'); }
     }
 
     const tasks_manager_role_migration_complete = db.get('tasks_manager_role_migration_complete').value();

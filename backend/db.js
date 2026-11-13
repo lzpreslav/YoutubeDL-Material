@@ -553,6 +553,15 @@ const getDBTableStats = async (table) => {
     return table_stats;
 }
 
+const USER_DATA_TABLES = ['files', 'playlists', 'categories', 'subscriptions', 'users', 'download_queue', 'notifications', 'archives'];
+
+exports.hasUserData = async () => {
+    for (const table of USER_DATA_TABLES) {
+        if (await exports.getRecords(table, null, true) > 0) return true;
+    }
+    return false;
+}
+
 // JSON to DB
 
 exports.generateJSONTables = async (db_json, users_json) => {
