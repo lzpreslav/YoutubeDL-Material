@@ -9,7 +9,6 @@ const express = require("express");
 const db_api = require('./db');
 const utils = require('./utils')
 const low = require('lowdb')
-const fetch = require('node-fetch');
 const URL = require('url').URL;
 const CONSTS = require('./consts')
 const read_last_lines = require('read-last-lines');
@@ -97,8 +96,6 @@ users_db.defaults(
 // config values
 let url = null;
 let backendPort = null;
-let useDefaultDownloadingAgent = null;
-let customDownloadingAgent = null;
 let allowSubscriptions = null;
 
 // other needed values
@@ -108,18 +105,6 @@ const concurrentStreams = {};
 
 if (debugMode) logger.info('YTDL-Material in debug mode!');
 
-var validDownloadingAgents = [
-    'aria2c',
-    'avconv',
-    'axel',
-    'curl',
-    'ffmpeg',
-    'httpie',
-    'wget'
-];
-
-const subscription_timeouts = {};
-
 let version_info = null;
 if (fs.existsSync('version.json')) {
     version_info = fs.readJSONSync('version.json');
@@ -127,12 +112,6 @@ if (fs.existsSync('version.json')) {
 } else {
     version_info = {'type': 'N/A', 'tag': 'N/A', 'commit': 'N/A', 'date': 'N/A'};
 }
-
-// don't overwrite config if it already happened.. NOT
-// let alreadyWritten = db.get('configWriteFlag').value();
-
-// checks if config exists, if not, a config is auto generated
-config_api.configExistsCheck();
 
 setAndLoadConfig();
 
@@ -342,15 +321,7 @@ async function loadConfig() {
 function loadConfigValues() {
     url = !debugMode ? config_api.getConfigItem('ytdl_url') : 'http://localhost:4200';
     backendPort = config_api.getConfigItem('ytdl_port');
-    useDefaultDownloadingAgent = config_api.getConfigItem('ytdl_use_default_downloading_agent');
-    customDownloadingAgent = config_api.getConfigItem('ytdl_custom_downloading_agent');
     allowSubscriptions = config_api.getConfigItem('ytdl_allow_subscriptions');
-
-    if (!useDefaultDownloadingAgent && validDownloadingAgents.indexOf(customDownloadingAgent) !== -1 ) {
-        logger.info(`Using non-default downloading agent \'${customDownloadingAgent}\'`)
-    } else {
-        customDownloadingAgent = null;
-    }
 
     // empty url defaults to default URL
     if (!url || url === '') url = 'http://example.com'
@@ -572,7 +543,6 @@ app.get('/api/getMp3s', optionalJwt, async function(req, res) {
     const is_authenticated = req.isAuthenticated();
     if (is_authenticated) {
         // get user audio files/playlists
-        auth_api.passport.authenticate('jwt')
         mp3s = await db_api.getRecords('files', {user_uid: req.user.uid, isAudio: true});
         playlists = await db_api.getRecords('playlists', {user_uid: req.user.uid}); // TODO: remove?
     }
@@ -593,7 +563,6 @@ app.get('/api/getMp4s', optionalJwt, async function(req, res) {
     const is_authenticated = req.isAuthenticated();
     if (is_authenticated) {
         // get user videos/playlists
-        auth_api.passport.authenticate('jwt')
         mp4s = await db_api.getRecords('files', {user_uid: req.user.uid, isAudio: false});
         playlists = await db_api.getRecords('playlists', {user_uid: req.user.uid}); // TODO: remove?
     }
@@ -774,13 +743,8 @@ app.post('/api/enableSharing', optionalJwt, async (req, res) => {
         success = true;
         if (!is_playlist) {
             await db_api.updateRecord('files', {uid: uid}, {sharingEnabled: true})
-        } else if (is_playlist) {
-            await db_api.updateRecord(`playlists`, {id: uid}, {sharingEnabled: true});
-        } else if (false) {
-            // TODO: Implement.
         } else {
-            // error
-            success = false;
+            await db_api.updateRecord(`playlists`, {id: uid}, {sharingEnabled: true});
         }
 
     } catch(err) {
@@ -1180,14 +1144,7 @@ app.post('/api/deleteAllFiles', optionalJwt, async (req, res) => {
     let file_type_filter = req.body.file_type_filter;
 
     const filter_obj = {user_uid: uuid};
-    const regex = true;
-    if (text_search) {
-        if (regex) {
-            filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
-        } else {
-            filter_obj['$text'] = { $search: utils.createEdgeNGrams(text_search) };
-        }
-    }
+    if (text_search) filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
 
     if (file_type_filter === 'audio_only') filter_obj['isAudio'] = true;
     else if (file_type_filter === 'video_only') filter_obj['isAudio'] = false;
@@ -1679,7 +1636,7 @@ app.post('/api/auth/register', optionalJwt, async (req, res) => {
     const username = req.body.username;
     const plaintextPassword = req.body.password;
 
-    if (userid !== 'admin' && !config_api.getConfigItem('ytdl_allow_registration') && !req.isAuthenticated() && (!req.user || !exports.userHasPermission(req.user.uid, 'settings'))) {
+    if (userid !== 'admin' && !config_api.getConfigItem('ytdl_allow_registration') && !req.isAuthenticated()) {
         logger.warn(`Registration failed for user ${userid}. Registration is disabled.`);
         res.sendStatus(409);
         return;

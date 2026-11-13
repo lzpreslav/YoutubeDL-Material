@@ -323,14 +323,7 @@ exports.getVideo = async (file_uid) => {
 
 exports.getAllFiles = async (sort, range, text_search, file_type_filter, favorite_filter, sub_id, uuid) => {
     const filter_obj = {user_uid: uuid};
-    const regex = true;
-    if (text_search) {
-        if (regex) {
-            filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
-        } else {
-            filter_obj['$text'] = { $search: utils.createEdgeNGrams(text_search) };
-        }
-    }
+    if (text_search) filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
 
     if (favorite_filter) {
         filter_obj['favorite'] = true;
@@ -343,7 +336,7 @@ exports.getAllFiles = async (sort, range, text_search, file_type_filter, favorit
     if (file_type_filter === 'audio_only') filter_obj['isAudio'] = true;
     else if (file_type_filter === 'video_only') filter_obj['isAudio'] = false;
     
-    const files = JSON.parse(JSON.stringify(await db_api.getRecords('files', filter_obj, false, sort, range, text_search)));
+    const files = JSON.parse(JSON.stringify(await db_api.getRecords('files', filter_obj, false, sort, range)));
     const file_count = await db_api.getRecords('files', filter_obj, true);
 
     return {files, file_count};

@@ -58,16 +58,6 @@ function getElementNameInConfig(path) {
     return elements[elements.length - 1];
 }
 
-/**
- * Check if config exists. If not, write default config to config path
- */
-exports.configExistsCheck = () => {
-    let exists = fs.existsSync(configPath);
-    if (!exists) {
-        exports.setConfigFile(DEFAULT_CONFIG);
-    }
-}
-
 /*
 * Gets config file and returns as a json
 */
