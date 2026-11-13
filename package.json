@@ -8,7 +8,6 @@
     "build": "ng build --configuration production",
     "prebuild": "node src/postbuild.mjs",
     "lint": "ng lint",
-    "e2e": "ng e2e",
     "generate": "openapi --input ./\"Public API v1.yaml\" --output ./src/api-types --exportCore false --exportServices false --exportModels true",
     "i18n-source": "ng extract-i18n --output-path=src/assets/i18n --out-file=messages.en.xlf"
   },
@@ -62,8 +61,6 @@
     "codelyzer": "^6.0.0",
     "eslint": "^7.32.0",
     "openapi-typescript-codegen": "^0.23.0",
-    "protractor": "~7.0.0",
-    "ts-node": "~3.0.4",
     "tslint": "~6.1.0"
   },
   "overrides": {
