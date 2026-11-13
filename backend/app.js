@@ -361,11 +361,6 @@ function loadConfigValues() {
     utils.updateLoggerLevel(logger_level);
 }
 
-function getOrigin() {
-    if (process.env.CODESPACES) return `https://${process.env.CODESPACE_NAME}-4200.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
-    return url_domain.origin;
-}
-
 // gets a list of config items that are stored as an environment variable
 function getEnvConfigItems() {
     let config_items = [];
@@ -404,7 +399,7 @@ async function startYoutubeDL() {
 
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    res.header("Access-Control-Allow-Origin", getOrigin());
+    res.header("Access-Control-Allow-Origin", url_domain.origin);
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
