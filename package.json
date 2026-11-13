@@ -8,7 +8,6 @@
     "codespaces": "ng serve --configuration=codespaces",
     "build": "ng build --configuration production",
     "prebuild": "node src/postbuild.mjs",
-    "heroku-postbuild": "npm install --prefix backend",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",

@@ -234,14 +234,6 @@ async function simplifyDBFileStructure() {
 }
 
 async function startServer() {
-    if (process.env.USING_HEROKU && process.env.PORT) {
-        // default to heroku port if using heroku
-        backendPort = process.env.PORT || backendPort;
-
-        // set config to port
-        await setPortItemFromENV();
-    }
-
     const server = app.listen(backendPort,function(){
         logger.info(`YoutubeDL-Material ${CONSTS['CURRENT_VERSION']} started on PORT ${backendPort}`);
     });
@@ -296,12 +288,6 @@ async function killAllDownloads() {
     return {
         success: true
     };
-}
-
-async function setPortItemFromENV() {
-    config_api.setConfigItem('ytdl_port', backendPort.toString());
-    await utils.wait(100);
-    return true;
 }
 
 async function setAndLoadConfig() {
