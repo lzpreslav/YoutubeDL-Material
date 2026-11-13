@@ -12,6 +12,8 @@ const db_api = require('./db');
 const downloader_api = require('./downloader');
 const notifications_api = require('./notifications');
 
+const sub_to_check_process = {};
+
 exports.subscribe = async (sub, user_uid = null, skip_get_info = false) => {
     const result_obj = {
         success: false,
@@ -240,9 +242,10 @@ async function _getVideosForSub(sub) {
     logger.verbose(`Subscription: getting list of videos to download for ${sub.name} with args: ${downloadConfig.join(',')}`);
 
     let {child_process, callback} = await youtubedl_api.runYoutubeDL(sub.url, downloadConfig);
-    updateSubscriptionProperty(sub, {child_process: child_process}, user_uid);
+    sub_to_check_process[sub.id] = child_process;
     const {parsed_output, partial_output, err} = await callback;
-    updateSubscriptionProperty(sub, {downloading: false, child_process: null}, user_uid);
+    delete sub_to_check_process[sub.id];
+    updateSubscriptionProperty(sub, {downloading: false}, user_uid);
     const output_jsons = parsed_output || partial_output;
     if (!output_jsons || (!parsed_output && output_jsons.length === 0)) {
         const detail = getCheckErrorDetail(err);
@@ -421,16 +424,14 @@ async function getFilesToDownload(sub, output_jsons) {
 
 exports.cancelCheckSubscription = async (sub_id) => {
     const sub = await exports.getSubscription(sub_id);
-    if (!sub['downloading'] && !sub['child_process']) {
+    const child_process = sub_to_check_process[sub_id];
+    if (!sub['downloading'] && !child_process) {
         logger.error('Failed to cancel subscription check, verify that it is still running!');
         return false;
     }
 
     // if check is ongoing
-    if (sub['child_process']) {
-        const child_process = sub['child_process'];
-        youtubedl_api.killYoutubeDLProcess(child_process);
-    }
+    if (child_process) youtubedl_api.killYoutubeDLProcess(child_process);
 
     // cancel activate video downloads
     await killSubDownloads(sub_id);

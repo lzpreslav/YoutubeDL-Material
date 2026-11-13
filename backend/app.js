@@ -307,7 +307,7 @@ async function loadConfig() {
         // set downloading to false
         let subscriptions = await subscriptions_api.getAllSubscriptions();
         subscriptions.forEach(async sub => subscriptions_api.writeSubscriptionMetadata(sub));
-        subscriptions_api.updateSubscriptionPropertyMultiple(subscriptions, {downloading: false, child_process: null});
+        subscriptions_api.updateSubscriptionPropertyMultiple(subscriptions, {downloading: false});
         // runs initially, then runs every ${subscriptionCheckInterval} seconds
         subscriptions_api.watchSubscriptionsInterval();
     }
