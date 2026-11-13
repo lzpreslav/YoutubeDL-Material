@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { PostsService } from 'app/posts.services';
 import { CURRENT_VERSION } from 'app/consts';
 
@@ -9,26 +9,12 @@ import { CURRENT_VERSION } from 'app/consts';
     changeDetection: ChangeDetectionStrategy.Eager,
     standalone: false
 })
-export class AboutDialogComponent implements OnInit {
+export class AboutDialogComponent {
 
   projectLink = 'https://github.com/lzpreslav/YoutubeDL-Material';
   issuesLink = 'https://github.com/lzpreslav/YoutubeDL-Material/issues';
-  latestUpdateLink = 'https://github.com/Tzahi12345/YoutubeDL-Material/releases/latest'
-  latestGithubRelease = null;
-  checking_for_updates = true;
 
   current_version_tag = CURRENT_VERSION;
 
   constructor(public postsService: PostsService) { }
-
-  ngOnInit(): void {
-    this.getLatestGithubRelease();
-  }
-
-  getLatestGithubRelease() {
-    this.postsService.getLatestGithubRelease().subscribe(res => {
-      this.checking_for_updates = false;
-      this.latestGithubRelease = res;
-    });
-  }
 }

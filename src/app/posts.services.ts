@@ -645,15 +645,6 @@ export class PostsService  {
         return this.http.get<VersionInfoResponse>(this.path + 'versionInfo', this.httpOptions);
     }
 
-    // gets tag of the latest version of youtubedl-material
-    getLatestGithubRelease() {
-        return this.http.get('https://api.github.com/repos/tzahi12345/youtubedl-material/releases/latest');
-    }
-
-    getAvailableRelease() {
-        return this.http.get('https://api.github.com/repos/tzahi12345/youtubedl-material/releases');
-    }
-
     afterLogin(user, token, permissions, available_permissions) {
         this.isLoggedIn = true;
         this.user = user;

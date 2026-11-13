@@ -4,7 +4,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import {DomSanitizer} from '@angular/platform-browser';
 import { MatDialog } from '@angular/material/dialog';
 import { ArgModifierDialogComponent } from 'app/dialogs/arg-modifier-dialog/arg-modifier-dialog.component';
-import { CURRENT_VERSION } from 'app/consts';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { CookiesUploaderDialogComponent } from 'app/dialogs/cookies-uploader-dialog/cookies-uploader-dialog.component';
 import { ConfirmDialogComponent } from 'app/dialogs/confirm-dialog/confirm-dialog.component';
@@ -35,8 +34,6 @@ export class SettingsComponent implements OnInit {
 
   _settingsSame = true;
 
-  latestGithubRelease = null;
-  CURRENT_VERSION = CURRENT_VERSION
 
   tabs = ['main', 'downloader', 'extra', 'database', 'notifications', 'advanced', 'users', 'logs'];
   tabIndex = 0;
@@ -75,8 +72,6 @@ export class SettingsComponent implements OnInit {
     }
 
     this.generated_bookmarklet_code = this.sanitizer.bypassSecurityTrustUrl(this.generateBookmarkletCode());
-
-    this.getLatestGithubRelease();
 
     const tab = this.route.snapshot.paramMap.get('tab');
     this.tabIndex = tab && this.TAB_TO_INDEX[tab] ? this.TAB_TO_INDEX[tab] : 0;
@@ -244,12 +239,6 @@ export class SettingsComponent implements OnInit {
     }
    });
  }
-
- getLatestGithubRelease(): void {
-    this.postsService.getLatestGithubRelease().subscribe(res => {
-      this.latestGithubRelease = res;
-    });
-  }
 
   openCookiesUploaderDialog(): void {
     this.dialog.open(CookiesUploaderDialogComponent, {
