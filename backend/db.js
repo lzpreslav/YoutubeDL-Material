@@ -73,14 +73,9 @@ const tables_list = Object.keys(tables);
 
 let using_local_db = null; 
 
-function setDB(input_db, input_users_db) {
-    db = input_db; users_db = input_users_db;
-    exports.db = input_db;
-    exports.users_db = input_users_db
-}
-
 exports.initialize = (input_db, input_users_db, db_name = 'local_db.json') => {
-    setDB(input_db, input_users_db);
+    exports.db = input_db;
+    exports.users_db = input_users_db;
 
     // must be done here to prevent getConfigItem from being called before init
     using_local_db = config_api.getConfigItem('ytdl_use_local_db');
@@ -473,31 +468,6 @@ exports.removeRecord = async (table, filter_obj) => {
     return !!(output['result']['ok']);
 }
 
-// exports.removeRecordsByUIDBulk = async (table, uids) => {
-//     // local db override
-//     if (using_local_db) {
-//         exports.applyFilterLocalDB(local_db.get(table), filter_obj, 'remove').write();
-//         return true;
-//     }
-
-//     const table_collection = database.collection(table);
-        
-//     let bulk = table_collection.initializeOrderedBulkOp(); // Initialize the Ordered Batch
-
-//     const item_ids_to_remove = 
-
-//     for (let i = 0; i < item_ids_to_update.length; i++) {
-//         const item_id_to_update = item_ids_to_update[i];
-//         bulk.find({[key_label]: item_id_to_update }).updateOne({
-//             "$set": update_obj[item_id_to_update]
-//         });
-//     }
-
-//     const output = await bulk.execute();
-//     return !!(output['result']['ok']);
-// }
-
-
 exports.findDuplicatesByKey = async (table, key) => {
     let duplicates = [];
     if (using_local_db) {
@@ -660,14 +630,6 @@ const createFilesRecords = (files, subscriptions) => {
     return files;
 }
 
-const createPlaylistsRecords = async (playlists) => {
-
-}
-
-const createCategoriesRecords = async (categories) => {
-
-}
-
 const createSubscriptionsRecords = (subscriptions) => {
     for (let i = 0; i < subscriptions.length; i++) {
         delete subscriptions[i]['videos'];
@@ -822,10 +784,6 @@ exports.applyFilterLocalDB = (db_path, filter_obj, operation) => {
                         filtered &= filter_prop in record && record[filter_prop] < filter_prop_value['$lt'];
                     } else if ('$gt' in filter_prop_value) {
                         filtered &= filter_prop in record && record[filter_prop] > filter_prop_value['$gt'];
-                    } else if ('$lte' in filter_prop_value) {
-                        filtered &= filter_prop in record && record[filter_prop] <= filter_prop_value['$lt'];
-                    } else if ('$gte' in filter_prop_value) {
-                        filtered &= filter_prop in record && record[filter_prop] >= filter_prop_value['$gt'];
                     }
                 } else {
                     // handle case of nested property check
@@ -839,9 +797,4 @@ exports.applyFilterLocalDB = (db_path, filter_obj, operation) => {
         return filtered;
     });
     return return_val;
-}
-
-// should only be used for tests
-exports.setLocalDBMode = (mode) => {
-    using_local_db = mode;
 }

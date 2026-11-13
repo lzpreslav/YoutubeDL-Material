@@ -199,20 +199,6 @@ exports.updatePlaylist = async (playlist) => {
     return await db_api.updateRecord('playlists', {id: playlistID}, playlist);
 }
 
-exports.setPlaylistProperty = async (playlist_id, assignment_obj, user_uid = null) => {
-    let success = await db_api.updateRecord('playlists', {id: playlist_id}, assignment_obj);
-
-    if (!success) {
-        success = await db_api.updateRecord('categories', {uid: playlist_id}, assignment_obj);
-    }
-
-    if (!success) {
-        logger.error(`Could not find playlist or category with ID ${playlist_id}`);
-    }
-
-    return success;
-}
-
 exports.calculatePlaylistDuration = async (playlist, playlist_file_objs = null) => {
     if (!playlist_file_objs) {
         playlist_file_objs = [];
