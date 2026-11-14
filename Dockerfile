@@ -9,22 +9,18 @@ RUN --mount=type=bind,source=docker-utils,target=/scripts \
 
 FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS base
 ARG DEBIAN_FRONTEND=noninteractive
-ENV UID=2000
-ENV GID=2000
-ENV USER=youtube
 ENV NO_UPDATE_NOTIFIER=true
 ENV npm_config_cache=/root/.npm
 
 # Install package dependencies
-RUN groupadd -g $GID $USER && \
-    useradd --system -m -g $USER --uid $UID $USER && \
+RUN groupadd -g 2000 youtube && \
+    useradd --system -m -g youtube --uid 2000 youtube && \
     apt update && \
     apt install -y --no-install-recommends \
                 atomicparsley \
                 ca-certificates \
                 curl \
                 ffmpeg \
-                gosu \
                 libatomic1 \
                 libicu74 \
                 python-is-python3 \
@@ -89,6 +85,15 @@ RUN NODE_DIR="/usr/local/nvm/versions/node/v${NODE_VERSION}" && \
            "${NODE_DIR}/bin/npx" \
            "${NODE_DIR}/bin/corepack"
 
+# yt-dlp and deno cache here, a location that any user the container runs as can write to
+ENV XDG_CACHE_HOME=/tmp/.cache
+
+# The data folders are writable by everyone, so the container also works when started as another
+# user. A new named volume takes over the owner and mode of the folder it is mounted on.
+RUN mkdir -p appdata audio video subscriptions users && \
+    chown -R youtube:youtube appdata audio video subscriptions users && \
+    chmod -R a+rwX appdata audio video subscriptions users
+
+USER youtube:youtube
 EXPOSE 17442
-ENTRYPOINT [ "/app/entrypoint.sh" ]
 CMD [ "node", "app.js" ]
