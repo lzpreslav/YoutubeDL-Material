@@ -112,30 +112,6 @@ exports.importUnregisteredFiles = async () => {
     return imported_files;
 }
 
-exports.addMetadataPropertyToDB = async (property_key) => {
-    try {
-        const dirs_to_check = await db_api.getFileDirectoriesAndDBs();
-        const update_obj = {};
-        for (let i = 0; i < dirs_to_check.length; i++) {
-            const dir_to_check = dirs_to_check[i];
-
-            // recursively get all files in dir's path
-            const files = await utils.getDownloadedFilesByType(dir_to_check.basePath, dir_to_check.type, true);
-            for (let j = 0; j < files.length; j++) {
-                const file = files[j];
-                if (file[property_key]) {
-                    update_obj[file.uid] = {[property_key]: file[property_key]};
-                }
-            }
-        }
-
-        return await db_api.bulkUpdateRecordsByKey('files', 'uid', update_obj);
-    } catch(err) {
-        logger.error(err);
-        return false;
-    }
-}
-
 exports.createPlaylist = async (playlist_name, uids, user_uid = null) => {
     const first_video = await exports.getVideo(uids[0]);
     const thumbnailToUse = first_video['thumbnailURL'];

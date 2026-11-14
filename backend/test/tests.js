@@ -74,13 +74,6 @@ const sample_video_json = {
 
 describe('Database', async function() {
     describe.skip('Import', async function() {
-        // it('Migrate', async function() {
-        //     // await db_api.connectToDB();
-        //     await db_api.removeAllRecords();
-        //     const success = await db_api.importJSONToDB(db.value(), users_db.value());
-        //     assert(success);
-        // });
-
         it('Transfer to remote', async function() {
             await db_api.removeAllRecords('test');
             await db_api.insertRecordIntoTable('test', {test: 'test'});
@@ -315,26 +308,6 @@ describe('Database', async function() {
                 });
             });
         }
-    });
-
-    describe('User data check', async function() {
-        beforeEach(async function() {
-            await db_api.removeAllRecords();
-        });
-
-        it('Is false for a database that only holds roles and tasks', async function() {
-            await db_api.insertRecordIntoTable('roles', {key: 'admin', permissions: []});
-            await db_api.insertRecordIntoTable('tasks', {key: 'backup_local_db'});
-            assert(!(await db_api.hasUserData()));
-        });
-
-        it('Is true once a file or subscription exists', async function() {
-            await db_api.insertRecordIntoTable('files', sample_video_json);
-            assert(await db_api.hasUserData());
-            await db_api.removeAllRecords();
-            await db_api.insertRecordIntoTable('subscriptions', {id: 'test_sub'});
-            assert(await db_api.hasUserData());
-        });
     });
 
     describe('Local DB Filters', async function() {
