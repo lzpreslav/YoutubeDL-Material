@@ -442,16 +442,6 @@
       @if (new_config) {
         <div class="container-fluid">
           <div class="row">
-            <div class="col-12 mt-3">
-              <mat-form-field>
-                <mat-label><ng-container i18n="Default downloader select label">Select a downloader</ng-container></mat-label>
-                <mat-select color="accent" [(ngModel)]="new_config['Advanced']['default_downloader']">
-                  <mat-option value="youtube-dl">youtube-dl</mat-option>
-                  <mat-option value="yt-dlp">yt-dlp</mat-option>
-                </mat-select>
-                <mat-hint i18n="Restart required hint">Restart required.</mat-hint>
-              </mat-form-field>
-            </div>
             <div class="col-12 mt-1">
               <mat-checkbox color="accent" [(ngModel)]="new_config['Advanced']['use_default_downloading_agent']"><ng-container i18n="Use default downloading agent setting">Use default downloading agent</ng-container></mat-checkbox>
             </div>

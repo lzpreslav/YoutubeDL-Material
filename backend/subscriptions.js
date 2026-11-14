@@ -391,10 +391,7 @@ async function generateArgsForSubscription(sub, user_uid, redownload = false, de
         downloadConfig.push('-r', rate_limit);
     }
 
-    const default_downloader = config_api.getConfigItem('ytdl_default_downloader');
-    if (default_downloader === 'yt-dlp') {
-        downloadConfig.push('--no-clean-info-json');
-    }
+    downloadConfig.push('--no-clean-info-json');
 
     downloadConfig = utils.filterArgs(downloadConfig, ['--write-comments']);
 

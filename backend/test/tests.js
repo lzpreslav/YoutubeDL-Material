@@ -600,23 +600,17 @@ describe('youtube-dl', async function() {
     });
     it('Check latest version', async function() {
         this.timeout(300000);
-        const original_fork = config_api.getConfigItem('ytdl_default_downloader');
-        const latest_version = await youtubedl_api.getLatestUpdateVersion(original_fork);
+        const latest_version = await youtubedl_api.getLatestUpdateVersion();
         assert(latest_version > CONSTS.OUTDATED_YOUTUBEDL_VERSION);
     });
 
-    it('Update youtube-dl', async function() {
+    it('Update yt-dlp', async function() {
         this.timeout(300000);
-        const original_fork = config_api.getConfigItem('ytdl_default_downloader');
         const binary_path = path.join('test', 'test_binary');
-        for (const youtubedl_fork in youtubedl_api.youtubedl_forks) {
-            config_api.setConfigItem('ytdl_default_downloader', youtubedl_fork);
-            const latest_version = await youtubedl_api.checkForYoutubeDLUpdate();
-            await youtubedl_api.updateYoutubeDL(latest_version, binary_path);
-            assert(fs.existsSync(binary_path));
-            if (fs.existsSync(binary_path)) fs.unlinkSync(binary_path);
-        }
-        config_api.setConfigItem('ytdl_default_downloader', original_fork);
+        const latest_version = await youtubedl_api.getLatestUpdateVersion();
+        await youtubedl_api.updateYoutubeDL(latest_version, binary_path);
+        assert(fs.existsSync(binary_path));
+        if (fs.existsSync(binary_path)) fs.unlinkSync(binary_path);
     });
 
     it('Run process', async function() {
@@ -630,22 +624,15 @@ describe('youtube-dl', async function() {
 
     describe('Failing process', function() {
         // a stand-in for yt-dlp, so these don't depend on what YouTube serves
-        const fake_fork = 'fake-ytdl';
-        const fake_binary_path = path.join('appdata', 'bin', fake_fork);
-        let original_fork = null;
+        const fake_binary_path = path.join('test', 'fake-ytdl');
 
         const runFakeProcess = async (script_lines) => {
             fs.writeFileSync(fake_binary_path, ['#!/bin/sh', ...script_lines].join('\n'), {mode: 0o755});
-            const {callback} = await youtubedl_api.runYoutubeDL('https://example.com', []);
+            const {callback} = await youtubedl_api.runYoutubeDLProcess('https://example.com', [], fake_binary_path);
             return await callback;
         }
 
-        beforeEach(function() {
-            original_fork = config_api.getConfigItem('ytdl_default_downloader');
-            config_api.setConfigItem('ytdl_default_downloader', fake_fork);
-        });
         afterEach(function() {
-            config_api.setConfigItem('ytdl_default_downloader', original_fork);
             if (fs.existsSync(fake_binary_path)) fs.unlinkSync(fake_binary_path);
         });
 

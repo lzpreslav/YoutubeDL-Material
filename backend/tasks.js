@@ -40,7 +40,7 @@ const TASKS = {
     youtubedl_update_check: {
         run: youtubedl_api.checkForYoutubeDLUpdate,
         confirm: youtubedl_api.updateYoutubeDL,
-        title: 'Update youtube-dl',
+        title: 'Update yt-dlp',
         job: null
     },
     delete_old_files: {

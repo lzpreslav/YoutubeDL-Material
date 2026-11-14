@@ -71,7 +71,7 @@ export class TasksComponent implements OnInit {
     this.postsService.getTasks().subscribe(res => {
       for (const task of res['tasks']) {
         if (task.title.includes('youtube-dl')) {
-          task.title = task.title.replace('youtube-dl', this.postsService.config.Advanced.default_downloader);
+          task.title = task.title.replace('youtube-dl', 'yt-dlp');
         }
       }
       if (this.tasks) {

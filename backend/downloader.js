@@ -169,7 +169,6 @@ exports.setupDownloads = async () => {
 }
 
 function getTempRoot() {
-    if (config_api.getConfigItem('ytdl_default_downloader') !== 'yt-dlp') return null;
     return config_api.getConfigItem('ytdl_temp_download_path') || null;
 }
 
@@ -209,8 +208,6 @@ exports.sweepTempDownloads = async () => {
 }
 
 function getDownloadProcessArgs(download) {
-    if (config_api.getConfigItem('ytdl_default_downloader') !== 'yt-dlp') return [];
-
     const progress_template = `download:${CONSTS.DOWNLOAD_PROGRESS_PREFIX} %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(progress.filename)s`;
     const process_args = ['--progress', '--newline', '--progress-delta', '1', '--progress-template', progress_template];
 
@@ -528,12 +525,6 @@ exports.downloadQueuedFile = async(download_uid, customDownloadHandler = null) =
 // helper functions
 
 exports.generateArgs = async (url, type, options, user_uid = null, simulated = false) => {
-    const default_downloader = config_api.getConfigItem('ytdl_default_downloader');
-
-    if (!simulated && (default_downloader === 'youtube-dl')) {
-        logger.warn('It is recommended you use yt-dlp! To prevent failed downloads, change the downloader in your settings menu to yt-dlp and restart your instance.')
-    }
-
     const audioFolderPath = config_api.getConfigItem('ytdl_audio_folder_path');
     const videoFolderPath = config_api.getConfigItem('ytdl_video_folder_path');
     const usersFolderPath = config_api.getConfigItem('ytdl_users_base_path');
@@ -581,7 +572,7 @@ exports.generateArgs = async (url, type, options, user_uid = null, simulated = f
         if (customQualityConfiguration) {
             qualityPath = ['-f', customQualityConfiguration, '--merge-output-format', 'mp4'];
         } else if (heightParam && heightParam !== '' && !is_audio) {
-            const heightFilter = (maxHeight && default_downloader === 'yt-dlp') ? ['-S', `res:${heightParam}`] : ['-f', `best[height${maxHeight ? '<' : ''}=${heightParam}]+bestaudio`]
+            const heightFilter = maxHeight ? ['-S', `res:${heightParam}`] : ['-f', `best[height=${heightParam}]+bestaudio`]
             qualityPath = [...heightFilter, '--merge-output-format', 'mp4'];
         } else if (is_audio) {
             qualityPath = ['--audio-quality', maxBitrate ? maxBitrate : '0']
@@ -642,19 +633,17 @@ exports.generateArgs = async (url, type, options, user_uid = null, simulated = f
             downloadConfig.push('-r', rate_limit);
         }
         
-        if (default_downloader === 'yt-dlp') {
-            downloadConfig = utils.filterArgs(downloadConfig, ['--print-json']);
+        downloadConfig = utils.filterArgs(downloadConfig, ['--print-json']);
 
-            // in yt-dlp -j --no-simulate is preferable
-            downloadConfig.push('--no-clean-info-json', '-j', '--no-simulate');
-        }
+        // in yt-dlp -j --no-simulate is preferable
+        downloadConfig.push('--no-clean-info-json', '-j', '--no-simulate');
 
     }
 
     // filter out incompatible args
     downloadConfig = filterArgs(downloadConfig, is_audio);
 
-    if (!simulated) logger.verbose(`${default_downloader} args being used: ${downloadConfig.join(',')}`);
+    if (!simulated) logger.verbose(`yt-dlp args being used: ${downloadConfig.join(',')}`);
     return downloadConfig;
 }
 
