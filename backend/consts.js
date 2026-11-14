@@ -213,10 +213,6 @@ exports.CONFIG_ITEMS = {
     },
 
     // Advanced
-    'ytdl_default_downloader': {
-        'key': 'ytdl_default_downloader',
-        'path': 'YoutubeDLMaterial.Advanced.default_downloader'
-    },
     'ytdl_use_default_downloading_agent': {
         'key': 'ytdl_use_default_downloading_agent',
         'path': 'YoutubeDLMaterial.Advanced.use_default_downloading_agent'

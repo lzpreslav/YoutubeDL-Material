@@ -322,10 +322,21 @@ exports.injectArgs = (original_args, new_args) => {
         }
     } catch (err) {
         logger.warn(err);
-        logger.warn(`Failed to inject args (${new_args}) into (${original_args})`);
+        logger.warn(`Failed to inject args (${exports.redactArgs(new_args)}) into (${exports.redactArgs(original_args)})`);
     }
 
     return updated_args;
+}
+
+const SECRET_ARGS = ['--password', '-p', '--video-password', '--ap-password', '--twofactor', '-2'];
+
+// args as a string for logging, with the values of secret args masked
+exports.redactArgs = (args) => {
+    return args.map((arg, i) => {
+        if (i > 0 && SECRET_ARGS.includes(args[i - 1])) return '***';
+        const secret_arg = SECRET_ARGS.find(secret_arg => String(arg).startsWith(`${secret_arg}=`));
+        return secret_arg ? `${secret_arg}=***` : arg;
+    }).join(',');
 }
 
 exports.filterArgs = (args, args_to_remove) => {

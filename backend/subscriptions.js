@@ -239,7 +239,7 @@ async function _getVideosForSub(sub) {
     const downloadConfig = await generateArgsForSubscription(sub, user_uid);
 
     // get videos
-    logger.verbose(`Subscription: getting list of videos to download for ${sub.name} with args: ${downloadConfig.join(',')}`);
+    logger.verbose(`Subscription: getting list of videos to download for ${sub.name} with args: ${utils.redactArgs(downloadConfig)}`);
 
     let {child_process, callback} = await youtubedl_api.runYoutubeDL(sub.url, downloadConfig);
     sub_to_check_process[sub.id] = child_process;
@@ -391,10 +391,7 @@ async function generateArgsForSubscription(sub, user_uid, redownload = false, de
         downloadConfig.push('-r', rate_limit);
     }
 
-    const default_downloader = config_api.getConfigItem('ytdl_default_downloader');
-    if (default_downloader === 'yt-dlp') {
-        downloadConfig.push('--no-clean-info-json');
-    }
+    downloadConfig.push('--no-clean-info-json');
 
     downloadConfig = utils.filterArgs(downloadConfig, ['--write-comments']);
 

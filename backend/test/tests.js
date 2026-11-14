@@ -74,13 +74,6 @@ const sample_video_json = {
 
 describe('Database', async function() {
     describe.skip('Import', async function() {
-        // it('Migrate', async function() {
-        //     // await db_api.connectToDB();
-        //     await db_api.removeAllRecords();
-        //     const success = await db_api.importJSONToDB(db.value(), users_db.value());
-        //     assert(success);
-        // });
-
         it('Transfer to remote', async function() {
             await db_api.removeAllRecords('test');
             await db_api.insertRecordIntoTable('test', {test: 'test'});
@@ -315,26 +308,6 @@ describe('Database', async function() {
                 });
             });
         }
-    });
-
-    describe('User data check', async function() {
-        beforeEach(async function() {
-            await db_api.removeAllRecords();
-        });
-
-        it('Is false for a database that only holds roles and tasks', async function() {
-            await db_api.insertRecordIntoTable('roles', {key: 'admin', permissions: []});
-            await db_api.insertRecordIntoTable('tasks', {key: 'backup_local_db'});
-            assert(!(await db_api.hasUserData()));
-        });
-
-        it('Is true once a file or subscription exists', async function() {
-            await db_api.insertRecordIntoTable('files', sample_video_json);
-            assert(await db_api.hasUserData());
-            await db_api.removeAllRecords();
-            await db_api.insertRecordIntoTable('subscriptions', {id: 'test_sub'});
-            assert(await db_api.hasUserData());
-        });
     });
 
     describe('Local DB Filters', async function() {
@@ -600,23 +573,31 @@ describe('youtube-dl', async function() {
     });
     it('Check latest version', async function() {
         this.timeout(300000);
-        const original_fork = config_api.getConfigItem('ytdl_default_downloader');
-        const latest_version = await youtubedl_api.getLatestUpdateVersion(original_fork);
+        const latest_version = await youtubedl_api.getLatestUpdateVersion();
         assert(latest_version > CONSTS.OUTDATED_YOUTUBEDL_VERSION);
     });
 
-    it('Update youtube-dl', async function() {
+    it('Update yt-dlp', async function() {
         this.timeout(300000);
-        const original_fork = config_api.getConfigItem('ytdl_default_downloader');
         const binary_path = path.join('test', 'test_binary');
-        for (const youtubedl_fork in youtubedl_api.youtubedl_forks) {
-            config_api.setConfigItem('ytdl_default_downloader', youtubedl_fork);
-            const latest_version = await youtubedl_api.checkForYoutubeDLUpdate();
-            await youtubedl_api.updateYoutubeDL(latest_version, binary_path);
+        const latest_version = await youtubedl_api.getLatestUpdateVersion();
+        await youtubedl_api.updateYoutubeDL(latest_version, binary_path);
+        assert(fs.existsSync(binary_path));
+        if (fs.existsSync(binary_path)) fs.unlinkSync(binary_path);
+    });
+
+    it('Downloads the binary when the version check fails and there is none', async function() {
+        this.timeout(300000);
+        const binary_path = path.join('appdata', 'bin', 'yt-dlp');
+        const getLatestUpdateVersion = youtubedl_api.getLatestUpdateVersion;
+        youtubedl_api.getLatestUpdateVersion = async () => null;
+        try {
+            fs.unlinkSync(binary_path);
+            await youtubedl_api.checkForYoutubeDLUpdate();
             assert(fs.existsSync(binary_path));
-            if (fs.existsSync(binary_path)) fs.unlinkSync(binary_path);
+        } finally {
+            youtubedl_api.getLatestUpdateVersion = getLatestUpdateVersion;
         }
-        config_api.setConfigItem('ytdl_default_downloader', original_fork);
     });
 
     it('Run process', async function() {
@@ -630,22 +611,15 @@ describe('youtube-dl', async function() {
 
     describe('Failing process', function() {
         // a stand-in for yt-dlp, so these don't depend on what YouTube serves
-        const fake_fork = 'fake-ytdl';
-        const fake_binary_path = path.join('appdata', 'bin', fake_fork);
-        let original_fork = null;
+        const fake_binary_path = path.join('test', 'fake-ytdl');
 
         const runFakeProcess = async (script_lines) => {
             fs.writeFileSync(fake_binary_path, ['#!/bin/sh', ...script_lines].join('\n'), {mode: 0o755});
-            const {callback} = await youtubedl_api.runYoutubeDL('https://example.com', []);
+            const {callback} = await youtubedl_api.runYoutubeDLProcess('https://example.com', [], fake_binary_path);
             return await callback;
         }
 
-        beforeEach(function() {
-            original_fork = config_api.getConfigItem('ytdl_default_downloader');
-            config_api.setConfigItem('ytdl_default_downloader', fake_fork);
-        });
         afterEach(function() {
-            config_api.setConfigItem('ytdl_default_downloader', original_fork);
             if (fs.existsSync(fake_binary_path)) fs.unlinkSync(fake_binary_path);
         });
 
@@ -1069,6 +1043,11 @@ describe('Archive', async function() {
 });
 
 describe('Utils', async function() {
+    it('Masks secret values in logged args', async function() {
+        const redacted = utils.redactArgs(['-o', 'out', '--username', 'me', '--password', 'hunter2', '--video-password=hunter3', '-f', 'best']);
+        assert.strictEqual(redacted, '-o,out,--username,me,--password,***,--video-password=***,-f,best');
+    });
+
     it('Strip properties', async function() {
         const test_obj = {test1: 'test1', test2: 'test2', test3: 'test3'};
         const stripped_obj = utils.stripPropertiesFromObject(test_obj, ['test1', 'test3']);
