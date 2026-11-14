@@ -4,7 +4,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import {DomSanitizer} from '@angular/platform-browser';
 import { MatDialog } from '@angular/material/dialog';
 import { ArgModifierDialogComponent } from 'app/dialogs/arg-modifier-dialog/arg-modifier-dialog.component';
-import { CURRENT_VERSION } from 'app/consts';
 import { MatCheckboxChange } from '@angular/material/checkbox';
 import { CookiesUploaderDialogComponent } from 'app/dialogs/cookies-uploader-dialog/cookies-uploader-dialog.component';
 import { ConfirmDialogComponent } from 'app/dialogs/confirm-dialog/confirm-dialog.component';
@@ -35,8 +34,6 @@ export class SettingsComponent implements OnInit {
 
   _settingsSame = true;
 
-  latestGithubRelease = null;
-  CURRENT_VERSION = CURRENT_VERSION
 
   tabs = ['main', 'downloader', 'extra', 'database', 'notifications', 'advanced', 'users', 'logs'];
   tabIndex = 0;
@@ -75,8 +72,6 @@ export class SettingsComponent implements OnInit {
     }
 
     this.generated_bookmarklet_code = this.sanitizer.bypassSecurityTrustUrl(this.generateBookmarkletCode());
-
-    this.getLatestGithubRelease();
 
     const tab = this.route.snapshot.paramMap.get('tab');
     this.tabIndex = tab && this.TAB_TO_INDEX[tab] ? this.TAB_TO_INDEX[tab] : 0;
@@ -202,7 +197,6 @@ export class SettingsComponent implements OnInit {
     const currentURL = window.location.href.split('#')[0];
     const homePageWithArgsURL = currentURL + '#/home;url=';
     const audioOnly = this.bookmarkletAudioOnly;
-    // tslint:disable-next-line: max-line-length
     const bookmarkletCode = `javascript:(function()%7Bwindow.open('${homePageWithArgsURL}' + encodeURIComponent(window.location) + ';audioOnly=${audioOnly}')%7D)()`;
     return bookmarkletCode;
   }
@@ -246,44 +240,9 @@ export class SettingsComponent implements OnInit {
    });
  }
 
- getLatestGithubRelease(): void {
-    this.postsService.getLatestGithubRelease().subscribe(res => {
-      this.latestGithubRelease = res;
-    });
-  }
-
   openCookiesUploaderDialog(): void {
     this.dialog.open(CookiesUploaderDialogComponent, {
       width: '65vw'
-    });
-  }
-
-  killAllDownloads(): void {
-    const done = new EventEmitter<boolean>();
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      data: {
-        dialogTitle: 'Kill downloads',
-        dialogText: 'Are you sure you want to kill all downloads? Any subscription and non-subscription downloads will end immediately, though this operation may take a minute or so to complete.',
-        submitText: 'Kill all downloads',
-        doneEmitter: done,
-        warnSubmitColor: true
-      }
-    });
-    done.subscribe(confirmed => {
-      if (confirmed) {
-        this.postsService.killAllDownloads().subscribe(res => {
-          if (res['success']) {
-            dialogRef.close();
-            this.postsService.openSnackBar($localize`Successfully killed all downloads!`);
-          } else {
-            dialogRef.close();
-            this.postsService.openSnackBar($localize`Failed to kill all downloads! Check logs for details.`);
-          }
-        }, () => {
-          dialogRef.close();
-          this.postsService.openSnackBar($localize`Failed to kill all downloads! Check logs for details.`);
-        });
-      }
     });
   }
 

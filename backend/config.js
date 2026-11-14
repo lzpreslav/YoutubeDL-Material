@@ -32,7 +32,7 @@ function ensureConfigFileExists() {
 }
 
 // https://stackoverflow.com/questions/6491463/accessing-nested-javascript-objects-with-string-key
-Object.byString = function(o, s) {
+function byString(o, s) {
     s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
     s = s.replace(/^\./, '');           // strip a leading dot
     var a = s.split('.');
@@ -56,16 +56,6 @@ function getParentPath(path) {
 function getElementNameInConfig(path) {
     let elements = path.split('.');
     return elements[elements.length - 1];
-}
-
-/**
- * Check if config exists. If not, write default config to config path
- */
-exports.configExistsCheck = () => {
-    let exists = fs.existsSync(configPath);
-    if (!exists) {
-        exports.setConfigFile(DEFAULT_CONFIG);
-    }
 }
 
 /*
@@ -103,13 +93,13 @@ exports.getConfigItem = (key) => {
         return null;
     }
     let path = exports.CONFIG_ITEMS[key]['path'];
-    const val = Object.byString(config_json, path);
-    if (val === undefined && Object.byString(DEFAULT_CONFIG, path) !== undefined) {
+    const val = byString(config_json, path);
+    if (val === undefined && byString(DEFAULT_CONFIG, path) !== undefined) {
         logger.warn(`Cannot find config with key '${key}'. Creating one with the default value...`);
-        exports.setConfigItem(key, Object.byString(DEFAULT_CONFIG, path));
-        return Object.byString(DEFAULT_CONFIG, path);
+        exports.setConfigItem(key, byString(DEFAULT_CONFIG, path));
+        return byString(DEFAULT_CONFIG, path);
     }
-    return Object.byString(config_json, path);
+    return byString(config_json, path);
 }
 
 exports.setConfigItem = (key, value) => {
@@ -118,14 +108,14 @@ exports.setConfigItem = (key, value) => {
     let path = exports.CONFIG_ITEMS[key]['path'];
     let element_name = getElementNameInConfig(path);
     let parent_path = getParentPath(path);
-    let parent_object = Object.byString(config_json, parent_path);
+    let parent_object = byString(config_json, parent_path);
     if (!parent_object) {
         let parent_parent_path = getParentPath(parent_path);
-        let parent_parent_object = Object.byString(config_json, parent_parent_path);
+        let parent_parent_object = byString(config_json, parent_parent_path);
         let parent_path_arr = parent_path.split('.');
         let parent_parent_single_key = parent_path_arr[parent_path_arr.length-1];
         parent_parent_object[parent_parent_single_key] = {};
-        parent_object = Object.byString(config_json, parent_path);
+        parent_object = byString(config_json, parent_path);
     }
     if (value === 'false') value = false;
     if (value === 'true') value = true;
@@ -152,19 +142,12 @@ exports.setConfigItems = (items) => {
         let item_parent_path = getParentPath(item_path);
         let item_element_name = getElementNameInConfig(item_path);
 
-        let item_parent_object = Object.byString(config_json, item_parent_path);
+        let item_parent_object = byString(config_json, item_parent_path);
         item_parent_object[item_element_name] = value;
     }
 
     success = exports.setConfigFile(config_json);
     return success;
-}
-
-exports.globalArgsRequiresSafeDownload = () => {
-    const globalArgs = exports.getConfigItem('ytdl_custom_args').split(',,');
-    const argsThatRequireSafeDownload = ['--write-sub', '--write-srt', '--proxy'];
-    const failedArgs = globalArgs.filter(arg => argsThatRequireSafeDownload.includes(arg));
-    return failedArgs && failedArgs.length > 0;
 }
 
 exports.findChangedConfigItems = (old_config, new_config, path = '', changedConfigItems = [], depth = 0) => {

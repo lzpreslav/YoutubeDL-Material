@@ -28,8 +28,6 @@ import {
     GetDownloadRequest,
     GetFileRequest,
     GetFileResponse,
-    GetMp3sResponse,
-    GetMp4sResponse,
     GetPlaylistRequest,
     GetPlaylistResponse,
     GetRolesResponse,
@@ -87,7 +85,6 @@ import {
     GetTaskRequest,
     GetTaskResponse,
     UpdateTaskScheduleRequest,
-    UpdateTaskDataRequest,
     RestoreDBBackupRequest,
     Schedule,
     ClearDownloadsRequest,
@@ -116,7 +113,6 @@ import {
 import { isoLangs } from './dialogs/user-profile-dialog/locales_list';
 import { Title } from '@angular/platform-browser';
 import { MatDrawerMode } from '@angular/material/sidenav';
-import { environment } from '../environments/environment';
 
 @Injectable()
 export class PostsService  {
@@ -174,7 +170,7 @@ export class PostsService  {
 
         if (isDevMode()) {
             this.debugMode = true;
-            this.path = !environment.codespaces ? 'http://localhost:17442/api/' : `${window.location.origin.replace('4200', '17442')}/api/`;
+            this.path = 'http://localhost:17442/api/';
         }
 
         this.http_params = `apiKey=${this.auth_token}`
@@ -270,14 +266,6 @@ export class PostsService  {
         return null;
     }
 
-    startHandshake(url: string) {
-        return this.http.get(url + 'geturl');
-    }
-
-    startHandshakeSSL(url: string) {
-        return this.http.get(url + 'geturl');
-    }
-
     reloadConfig() {
         this.getConfig().subscribe(res => {
             const result = !this.debugMode ? res['config_file'] : res;
@@ -288,7 +276,6 @@ export class PostsService  {
         });
     }
 
-    // tslint:disable-next-line: max-line-length
     downloadFile(url: string, type: FileType, selectedQuality: string, customQualityConfiguration: string, customArgs: string = null, additionalArgs: string = null, customOutput: string = null, youtubeUsername: string = null, youtubePassword: string = null, cropFileSettings: CropFileSettings = null) {
         const body: DownloadRequest = {url: url,
             maxHeight: selectedQuality,
@@ -331,20 +318,12 @@ export class PostsService  {
         return this.http.post<TestConnectionStringResponse>(this.path + 'testConnectionString', body, this.httpOptions);
     }
 
-    killAllDownloads() {
-        return this.http.post<SuccessObject>(this.path + 'killAllDownloads', {}, this.httpOptions);
-    }
-
     getConfig() {
         if (isDevMode()) {
             return this.http.get('./assets/default.json');
         } else {
             return this.http.get<ConfigResponse>(this.path + 'config', this.httpOptions);
         }
-    }
-
-    loadAsset(name) {
-        return this.http.get(`./assets/${name}`);
     }
 
     getSupportedLocales() {
@@ -359,14 +338,6 @@ export class PostsService  {
     deleteFile(uid: string, blacklistMode = false) {
         const body: DeleteMp3Mp4Request = {uid: uid, blacklistMode: blacklistMode}
         return this.http.post(this.path + 'deleteFile', body, this.httpOptions);
-    }
-
-    getMp3s() {
-        return this.http.get<GetMp3sResponse>(this.path + 'getMp3s', this.httpOptions);
-    }
-
-    getMp4s() {
-        return this.http.get<GetMp4sResponse>(this.path + 'getMp4s', this.httpOptions);
     }
 
     getFile(uid: string, uuid: string = null) {
@@ -656,11 +627,6 @@ export class PostsService  {
         return this.http.post<SuccessObject>(this.path + 'updateTaskSchedule', body, this.httpOptions);
     }
 
-    updateTaskData(task_key: TaskType, data: any) {
-        const body: UpdateTaskDataRequest = {task_key: task_key, new_data: data};
-        return this.http.post<SuccessObject>(this.path + 'updateTaskData', body, this.httpOptions);
-    }
-
     updateTaskOptions(task_key: TaskType, options: any) {
         const body: UpdateTaskOptionsRequest = {task_key: task_key, new_options: options};
         return this.http.post<SuccessObject>(this.path + 'updateTaskOptions', body, this.httpOptions);
@@ -677,15 +643,6 @@ export class PostsService  {
 
     getVersionInfo() {
         return this.http.get<VersionInfoResponse>(this.path + 'versionInfo', this.httpOptions);
-    }
-
-    // gets tag of the latest version of youtubedl-material
-    getLatestGithubRelease() {
-        return this.http.get('https://api.github.com/repos/tzahi12345/youtubedl-material/releases/latest');
-    }
-
-    getAvailableRelease() {
-        return this.http.get('https://api.github.com/repos/tzahi12345/youtubedl-material/releases');
     }
 
     afterLogin(user, token, permissions, available_permissions) {

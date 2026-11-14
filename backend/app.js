@@ -1,20 +1,16 @@
 const { v4: uuid } = require('uuid');
 const fs = require('fs-extra');
-const { promisify } = require('util');
 const auth_api = require('./authentication/auth');
 const path = require('path');
 const compression = require('compression');
 const multer  = require('multer');
 const express = require("express");
-const bodyParser = require("body-parser");
 const db_api = require('./db');
 const utils = require('./utils')
 const low = require('lowdb')
-const fetch = require('node-fetch');
 const URL = require('url').URL;
 const CONSTS = require('./consts')
 const read_last_lines = require('read-last-lines');
-const ps = require('ps-node');
 const Feed = require('feed').Feed;
 const session = require('express-session');
 
@@ -98,8 +94,6 @@ users_db.defaults(
 // config values
 let url = null;
 let backendPort = null;
-let useDefaultDownloadingAgent = null;
-let customDownloadingAgent = null;
 let allowSubscriptions = null;
 
 // other needed values
@@ -109,18 +103,6 @@ const concurrentStreams = {};
 
 if (debugMode) logger.info('YTDL-Material in debug mode!');
 
-var validDownloadingAgents = [
-    'aria2c',
-    'avconv',
-    'axel',
-    'curl',
-    'ffmpeg',
-    'httpie',
-    'wget'
-];
-
-const subscription_timeouts = {};
-
 let version_info = null;
 if (fs.existsSync('version.json')) {
     version_info = fs.readJSONSync('version.json');
@@ -129,16 +111,18 @@ if (fs.existsSync('version.json')) {
     version_info = {'type': 'N/A', 'tag': 'N/A', 'commit': 'N/A', 'date': 'N/A'};
 }
 
-// don't overwrite config if it already happened.. NOT
-// let alreadyWritten = db.get('configWriteFlag').value();
+// a rejection in a request handler or background job is logged, only a failed startup exits
+process.on('unhandledRejection', err => {
+    logger.error(`Unhandled promise rejection: ${err && err.stack ? err.stack : err}`);
+});
 
-// checks if config exists, if not, a config is auto generated
-config_api.configExistsCheck();
+setAndLoadConfig().catch(err => {
+    logger.error(`Failed to start: ${err && err.stack ? err.stack : err}`);
+    process.exit(1);
+});
 
-setAndLoadConfig();
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
 
 // use passport
 app.use(auth_api.passport.initialize());
@@ -166,13 +150,18 @@ async function checkMigrations() {
 
     const new_db_system_migration_complete = db.get('new_db_system_migration_complete').value();
     if (!new_db_system_migration_complete) {
-        logger.info('Beginning migration: 4.2->4.3+')
-        let success = await db_api.importJSONToDB(db.value(), users_db.value());
-        await tasks_api.setupTasks(); // necessary as tasks were not properly initialized at first
+        // the import replaces every table, so it only runs against a database that holds no user data
+        if (await db_api.hasUserData()) {
+            logger.warn('Skipping migration 4.2->4.3+ as the database already contains data.');
+        } else {
+            logger.info('Beginning migration: 4.2->4.3+')
+            let success = await db_api.importJSONToDB(db.value(), users_db.value());
+            await tasks_api.setupTasks(); // necessary as tasks were not properly initialized at first
+            if (success) { logger.info('4.2->4.3+ migration complete!'); }
+            else { logger.error('Migration failed: 4.2->4.3+'); }
+        }
         // sets migration to complete
         db.set('new_db_system_migration_complete', true).write();
-        if (success) { logger.info('4.2->4.3+ migration complete!'); }
-        else { logger.error('Migration failed: 4.2->4.3+'); }
     }
 
     const tasks_manager_role_migration_complete = db.get('tasks_manager_role_migration_complete').value();
@@ -234,74 +223,20 @@ async function simplifyDBFileStructure() {
 }
 
 async function startServer() {
-    if (process.env.USING_HEROKU && process.env.PORT) {
-        // default to heroku port if using heroku
-        backendPort = process.env.PORT || backendPort;
-
-        // set config to port
-        await setPortItemFromENV();
-    }
-
     const server = app.listen(backendPort,function(){
         logger.info(`YoutubeDL-Material ${CONSTS['CURRENT_VERSION']} started on PORT ${backendPort}`);
     });
 
     // graceful shutdown
     // kernel ignores signals for PID 1 without an explicit handler
-    const shutdown = async (signal) => {
+    const shutdown = (signal) => {
         logger.info(`Received ${signal}, shutting down.`);
-        // Don't wait forever on lingering keep-alive connections or a stuck kill.
+        // Don't wait forever on lingering keep-alive connections.
         setTimeout(() => process.exit(0), 5000).unref();
-        await killAllDownloads();
         server.close(() => process.exit(0));
     };
     // guard against multiple ctrl+c, once() fires the handler a single time per signal
     for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => shutdown(signal));
-}
-
-async function killAllDownloads() {
-    const lookupAsync = promisify(ps.lookup);
-    let resultList = null;
-
-    try {
-        resultList = await lookupAsync({
-            command: 'youtube-dl'
-        });
-    } catch (err) {
-        // failed to get list of processes
-        logger.error('Failed to get a list of running youtube-dl processes.');
-        logger.error(err);
-        return {
-            details: err,
-            success: false
-        };
-    }
-
-    // processes that contain the string 'youtube-dl' in the name will be looped
-    resultList.forEach(function( process ){
-        if (process) {
-            ps.kill(process.pid, 'SIGKILL', function( err ) {
-                if (err) {
-                    // failed to kill, process may have ended on its own
-                    logger.warn(`Failed to kill process with PID ${process.pid}`);
-                    logger.warn(err);
-                }
-                else {
-                    logger.verbose(`Process ${process.pid} has been killed!`);
-                }
-            });
-        }
-    });
-
-    return {
-        success: true
-    };
-}
-
-async function setPortItemFromENV() {
-    config_api.setConfigItem('ytdl_port', backendPort.toString());
-    await utils.wait(100);
-    return true;
 }
 
 async function setAndLoadConfig() {
@@ -343,7 +278,7 @@ async function loadConfig() {
         // set downloading to false
         let subscriptions = await subscriptions_api.getAllSubscriptions();
         subscriptions.forEach(async sub => subscriptions_api.writeSubscriptionMetadata(sub));
-        subscriptions_api.updateSubscriptionPropertyMultiple(subscriptions, {downloading: false, child_process: null});
+        subscriptions_api.updateSubscriptionPropertyMultiple(subscriptions, {downloading: false});
         // runs initially, then runs every ${subscriptionCheckInterval} seconds
         subscriptions_api.watchSubscriptionsInterval();
     }
@@ -357,15 +292,7 @@ async function loadConfig() {
 function loadConfigValues() {
     url = !debugMode ? config_api.getConfigItem('ytdl_url') : 'http://localhost:4200';
     backendPort = config_api.getConfigItem('ytdl_port');
-    useDefaultDownloadingAgent = config_api.getConfigItem('ytdl_use_default_downloading_agent');
-    customDownloadingAgent = config_api.getConfigItem('ytdl_custom_downloading_agent');
     allowSubscriptions = config_api.getConfigItem('ytdl_allow_subscriptions');
-
-    if (!useDefaultDownloadingAgent && validDownloadingAgents.indexOf(customDownloadingAgent) !== -1 ) {
-        logger.info(`Using non-default downloading agent \'${customDownloadingAgent}\'`)
-    } else {
-        customDownloadingAgent = null;
-    }
 
     // empty url defaults to default URL
     if (!url || url === '') url = 'http://example.com'
@@ -373,11 +300,6 @@ function loadConfigValues() {
 
     let logger_level = config_api.getConfigItem('ytdl_logger_level');
     utils.updateLoggerLevel(logger_level);
-}
-
-function getOrigin() {
-    if (process.env.CODESPACES) return `https://${process.env.CODESPACE_NAME}-4200.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`;
-    return url_domain.origin;
 }
 
 // gets a list of config items that are stored as an environment variable
@@ -418,7 +340,7 @@ async function startYoutubeDL() {
 
 app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    res.header("Access-Control-Allow-Origin", getOrigin());
+    res.header("Access-Control-Allow-Origin", url_domain.origin);
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
     } else {
@@ -558,11 +480,6 @@ app.post('/api/downloadFile', optionalJwt, async function(req, res) {
     }
 });
 
-app.post('/api/killAllDownloads', optionalJwt, async function(req, res) {
-    const result_obj = await killAllDownloads();
-    res.send(result_obj);
-});
-
 app.post('/api/generateArgs', optionalJwt, async function(req, res) {
     const url = req.body.url;
     const type = req.body.type;
@@ -592,7 +509,6 @@ app.get('/api/getMp3s', optionalJwt, async function(req, res) {
     const is_authenticated = req.isAuthenticated();
     if (is_authenticated) {
         // get user audio files/playlists
-        auth_api.passport.authenticate('jwt')
         mp3s = await db_api.getRecords('files', {user_uid: req.user.uid, isAudio: true});
         playlists = await db_api.getRecords('playlists', {user_uid: req.user.uid}); // TODO: remove?
     }
@@ -613,7 +529,6 @@ app.get('/api/getMp4s', optionalJwt, async function(req, res) {
     const is_authenticated = req.isAuthenticated();
     if (is_authenticated) {
         // get user videos/playlists
-        auth_api.passport.authenticate('jwt')
         mp4s = await db_api.getRecords('files', {user_uid: req.user.uid, isAudio: false});
         playlists = await db_api.getRecords('playlists', {user_uid: req.user.uid}); // TODO: remove?
     }
@@ -794,13 +709,8 @@ app.post('/api/enableSharing', optionalJwt, async (req, res) => {
         success = true;
         if (!is_playlist) {
             await db_api.updateRecord('files', {uid: uid}, {sharingEnabled: true})
-        } else if (is_playlist) {
-            await db_api.updateRecord(`playlists`, {id: uid}, {sharingEnabled: true});
-        } else if (false) {
-            // TODO: Implement.
         } else {
-            // error
-            success = false;
+            await db_api.updateRecord(`playlists`, {id: uid}, {sharingEnabled: true});
         }
 
     } catch(err) {
@@ -1028,16 +938,6 @@ app.post('/api/getSubscription', optionalJwt, async (req, res) => {
     }
 });
 
-app.post('/api/downloadVideosForSubscription', optionalJwt, async (req, res) => {
-    const subID = req.body.subID;
-
-    const sub = subscriptions_api.getSubscription(subID);
-    subscriptions_api.getVideosForSub(sub.id);
-    res.send({
-        success: true
-    });
-});
-
 app.post('/api/updateSubscription', optionalJwt, async (req, res) => {
     const updated_sub = req.body.subscription;
 
@@ -1062,16 +962,6 @@ app.post('/api/cancelCheckSubscription', optionalJwt, async (req, res) => {
     let user_uid = req.isAuthenticated() ? req.user.uid : null;
 
     const success = subscriptions_api.cancelCheckSubscription(sub_id, user_uid);
-    res.send({
-        success: success
-    });
-});
-
-app.post('/api/cancelSubscriptionCheck', optionalJwt, async (req, res) => {
-    let sub_id = req.body.sub_id;
-    let user_uid = req.isAuthenticated() ? req.user.uid : null;
-
-    const success = subscriptions_api.getVideosForSub(sub_id, user_uid);
     res.send({
         success: success
     });
@@ -1200,14 +1090,7 @@ app.post('/api/deleteAllFiles', optionalJwt, async (req, res) => {
     let file_type_filter = req.body.file_type_filter;
 
     const filter_obj = {user_uid: uuid};
-    const regex = true;
-    if (text_search) {
-        if (regex) {
-            filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
-        } else {
-            filter_obj['$text'] = { $search: utils.createEdgeNGrams(text_search) };
-        }
-    }
+    if (text_search) filter_obj['title'] = {$regex: `.*${text_search}.*`, $options: 'i'};
 
     if (file_type_filter === 'audio_only') filter_obj['isAudio'] = true;
     else if (file_type_filter === 'video_only') filter_obj['isAudio'] = false;
@@ -1699,7 +1582,7 @@ app.post('/api/auth/register', optionalJwt, async (req, res) => {
     const username = req.body.username;
     const plaintextPassword = req.body.password;
 
-    if (userid !== 'admin' && !config_api.getConfigItem('ytdl_allow_registration') && !req.isAuthenticated() && (!req.user || !exports.userHasPermission(req.user.uid, 'settings'))) {
+    if (userid !== 'admin' && !config_api.getConfigItem('ytdl_allow_registration') && !req.isAuthenticated()) {
         logger.warn(`Registration failed for user ${userid}. Registration is disabled.`);
         res.sendStatus(409);
         return;

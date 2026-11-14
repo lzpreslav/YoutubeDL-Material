@@ -8,10 +8,7 @@
       "sourceRoot": "src",
       "projectType": "application",
       "i18n": {
-        "sourceLocale": "en-US",
-        "locales": {
-          "es": "src/locale/messages.es.xlf"
-        }
+        "sourceLocale": "en-US"
       },
       "architect": {
         "build": {
@@ -28,10 +25,7 @@
             ],
             "assets": [
               "src/assets",
-              "src/favicon.ico",
-              "src/backend/audio",
-              "src/backend/video",
-              "src/backend"
+              "src/favicon.ico"
             ],
             "styles": [
               "src/styles.scss",
@@ -66,17 +60,6 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ]
-            },
-            "codespaces": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.codespaces.ts"
-                }
-              ]
-            },
-            "es": {
-              "localize": ["es"]
             }
           },
           "defaultConfiguration": ""
@@ -89,12 +72,6 @@
           "configurations": {
             "production": {
               "buildTarget": "youtube-dl-material:build:production"
-            },
-            "es": {
-              "buildTarget": "youtube-dl-material:build:es"
-            },
-            "codespaces": {
-              "buildTarget": "youtube-dl-material:build:codespaces"
             }
           }
         },
@@ -102,93 +79,6 @@
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
             "buildTarget": "youtube-dl-material:build"
-          }
-        },
-        "serve-electron": {
-          "builder": "@angular-guru/electron-builder:dev-server",
-          "options": {
-            "browserTarget": "youtube-dl-material:build"
-          },
-          "configurations": {
-            "production": {
-              "browserTarget": "youtube-dl-material:build:production"
-            }
-          }
-        },
-        "electron": {
-          "builder": "@angular-guru/electron-builder:build",
-          "options": {
-            "outputPath": "dist",
-            "index": "src/index.html",
-            "main": "main.js",
-            "tsConfig": "src/tsconfig.app.json",
-            "polyfills": "src/polyfills.ts",
-            "assets": [
-              "src/assets",
-              "src/favicon.ico",
-              "src/backend/audio",
-              "src/backend/video",
-              "src/backend"
-            ],
-            "styles": [
-              "src/styles.scss",
-              "src/bootstrap.min.css"
-            ],
-            "scripts": []
-          },
-          "configurations": {
-            "production": {
-              "optimization": true,
-              "outputHashing": "all",
-              "sourceMap": false,
-              "extractCss": true,
-              "namedChunks": false,
-              "aot": true,
-              "extractLicenses": true,
-              "vendorChunk": false,
-              "buildOptimizer": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.prod.ts"
-                }
-              ]
-            }
-          }
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "main": "src/test.ts",
-            "karmaConfig": "./karma.conf.js",
-            "polyfills": "src/polyfills.ts",
-            "tsConfig": "src/tsconfig.spec.json",
-            "scripts": [],
-            "styles": [
-              "src/styles.scss",
-              "src/bootstrap.min.css"
-            ],
-            "assets": [
-              "src/assets",
-              "src/favicon.ico",
-              "src/backend/audio",
-              "src/backend/video",
-              "src/backend"
-            ]
-          }
-        }
-      }
-    },
-    "youtube-dl-material-e2e": {
-      "root": "e2e",
-      "sourceRoot": "e2e",
-      "projectType": "application",
-      "architect": {
-        "e2e": {
-          "builder": "@angular-devkit/build-angular:protractor",
-          "options": {
-            "protractorConfig": "./protractor.conf.js",
-            "devServerTarget": "youtube-dl-material:serve"
           }
         }
       }

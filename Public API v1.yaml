@@ -379,27 +379,6 @@ paths:
                 $ref: '#/components/schemas/GetSubscriptionResponse'
       security:
         - Auth query parameter: []
-  /api/downloadVideosForSubscription:
-    post:
-      tags:
-        - subscriptions
-      summary: Download videos for subscription
-      description: 'Manually check the subscription for new videos. When used on newly created subscriptions, it will grab all  possible videos'
-      operationId: post-api-downloadVideosForSubscription
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DownloadVideosForSubscriptionRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SuccessObject'
-      security:
-        - Auth query parameter: []
   /api/getSubscriptions:
     post:
       tags:
@@ -2052,13 +2031,6 @@ components:
           type: array
           items:
             type: object
-    DownloadVideosForSubscriptionRequest:
-      required:
-        - subID
-      type: object
-      properties:
-        subID:
-          type: string
     GetAllSubscriptionsResponse:
       required:
         - subscriptions
@@ -2834,8 +2806,6 @@ components:
           nullable: true
         isPlaylist:
           type: boolean
-        child_process:
-          type: object
         archive:
           type: string
         timerange:

@@ -8,11 +8,11 @@ const utils = require('./utils');
 const logger = require('./logger');
 const CONSTS = require('./consts');
 
-const debugMode = process.env.YTDL_MODE === 'debug';
-
 const db_api = require('./db');
 const downloader_api = require('./downloader');
 const notifications_api = require('./notifications');
+
+const sub_to_check_process = {};
 
 exports.subscribe = async (sub, user_uid = null, skip_get_info = false) => {
     const result_obj = {
@@ -138,74 +138,6 @@ exports.unsubscribe = async (sub_id, deleteMode, user_uid = null) => {
     await db_api.removeAllRecords('archives', {sub_id: sub.id});
 }
 
-exports.deleteSubscriptionFile = async (sub, file, deleteForever, file_uid = null, user_uid = null) => {
-    if (typeof sub === 'string') {
-        // TODO: fix bad workaround where sub is a sub_id
-        sub = await db_api.getRecord('subscriptions', {sub_id: sub});
-    }
-    // TODO: combine this with deletefile
-    let basePath = null;
-    basePath = user_uid ? path.join(config_api.getConfigItem('ytdl_users_base_path'), user_uid, 'subscriptions')
-                        : config_api.getConfigItem('ytdl_subscriptions_base_path');
-    const appendedBasePath = getAppendedBasePath(sub, basePath);
-    const name = file;
-    let retrievedID = null;
-    let retrievedExtractor = null;
-
-    await db_api.removeRecord('files', {uid: file_uid});
-
-    let filePath = appendedBasePath;
-    const ext = (sub.type && sub.type === 'audio') ? '.mp3' : '.mp4'
-    var jsonPath = path.join(__dirname,filePath,name+'.info.json');
-    var videoFilePath = path.join(__dirname,filePath,name+ext);
-    var imageFilePath = path.join(__dirname,filePath,name+'.jpg');
-    var altImageFilePath = path.join(__dirname,filePath,name+'.webp');
-
-    const [jsonExists, videoFileExists, imageFileExists, altImageFileExists] = await Promise.all([
-        fs.pathExists(jsonPath),
-        fs.pathExists(videoFilePath),
-        fs.pathExists(imageFilePath),
-        fs.pathExists(altImageFilePath),
-    ]);
-
-    if (jsonExists) {
-        const info_json = fs.readJSONSync(jsonPath);
-        retrievedID = info_json['id'];
-        retrievedExtractor = info_json['extractor'];
-        await fs.unlink(jsonPath);
-    }
-
-    if (imageFileExists) {
-        await fs.unlink(imageFilePath);
-    }
-
-    if (altImageFileExists) {
-        await fs.unlink(altImageFilePath);
-    }
-
-    if (videoFileExists) {
-        await fs.unlink(videoFilePath);
-        if ((await fs.pathExists(jsonPath)) || (await fs.pathExists(videoFilePath))) {
-            return false;
-        } else {
-            // check if the user wants the video to be redownloaded (deleteForever === false)
-            if (deleteForever) {
-                // ensure video is in the archives
-                const exists_in_archive = await archive_api.existsInArchive(retrievedExtractor, retrievedID, sub.type, user_uid, sub.id);
-                if (!exists_in_archive) {
-                    await archive_api.addToArchive(retrievedExtractor, retrievedID, sub.type, file.title, user_uid, sub.id);
-                }
-            } else {
-                await archive_api.removeFromArchive(retrievedExtractor, retrievedID, sub.type, user_uid, sub.id);
-            }
-            return true;
-        }
-    } else {
-        // TODO: tell user that the file didn't exist
-        return true;
-    }
-}
-
 let subscriptions_check_running = false;
 exports.watchSubscriptionsInterval = async () => {
     const subscriptions_check_interval = config_api.getConfigItem('ytdl_subscriptions_check_interval');
@@ -310,9 +242,10 @@ async function _getVideosForSub(sub) {
     logger.verbose(`Subscription: getting list of videos to download for ${sub.name} with args: ${downloadConfig.join(',')}`);
 
     let {child_process, callback} = await youtubedl_api.runYoutubeDL(sub.url, downloadConfig);
-    updateSubscriptionProperty(sub, {child_process: child_process}, user_uid);
+    sub_to_check_process[sub.id] = child_process;
     const {parsed_output, partial_output, err} = await callback;
-    updateSubscriptionProperty(sub, {downloading: false, child_process: null}, user_uid);
+    delete sub_to_check_process[sub.id];
+    updateSubscriptionProperty(sub, {downloading: false}, user_uid);
     const output_jsons = parsed_output || partial_output;
     if (!output_jsons || (!parsed_output && output_jsons.length === 0)) {
         const detail = getCheckErrorDetail(err);
@@ -491,16 +424,14 @@ async function getFilesToDownload(sub, output_jsons) {
 
 exports.cancelCheckSubscription = async (sub_id) => {
     const sub = await exports.getSubscription(sub_id);
-    if (!sub['downloading'] && !sub['child_process']) {
+    const child_process = sub_to_check_process[sub_id];
+    if (!sub['downloading'] && !child_process) {
         logger.error('Failed to cancel subscription check, verify that it is still running!');
         return false;
     }
 
     // if check is ongoing
-    if (sub['child_process']) {
-        const child_process = sub['child_process'];
-        youtubedl_api.killYoutubeDLProcess(child_process);
-    }
+    if (child_process) youtubedl_api.killYoutubeDLProcess(child_process);
 
     // cancel activate video downloads
     await killSubDownloads(sub_id);

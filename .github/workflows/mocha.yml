@@ -29,7 +29,6 @@ jobs:
           key: ${{ runner.os }}-node-v${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-v${{ matrix.node }}-
-          working-directory: ./backend
       - uses: FedericoCarboni/setup-ffmpeg@v2
         id: setup-ffmpeg
       - uses: denoland/setup-deno@v2

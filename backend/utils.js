@@ -3,7 +3,6 @@ const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const fetch = require('node-fetch');
 const ProgressBar = require('progress');
-const winston = require('winston');
 
 const config_api = require('./config');
 const logger = require('./logger');
@@ -193,16 +192,6 @@ exports.durationStringToNumber = (dur_str) => {
     return num_sum;
 }
 
-exports.getMatchingCategoryFiles = (category, files) => {
-    return files && files.filter(file => file.category && file.category.uid === category.uid);
-}
-
-exports.addUIDsToCategory = (category, files) => {
-    const files_that_match = exports.getMatchingCategoryFiles(category, files);
-    category['uids'] = files_that_match.map(file => file.uid);
-    return files_that_match;
-}
-
 exports.recFindByExt = async (base, ext, files, result, recursive = true) => {
     files = files || (await fs.readdir(base))
     result = result || []
@@ -233,26 +222,6 @@ exports.removeFileExtension = (filename) => {
 
 exports.formatDateString = (date_string) => {
     return date_string ? `${date_string.substring(0, 4)}-${date_string.substring(4, 6)}-${date_string.substring(6, 8)}` : 'N/A';
-}
-
-exports.createEdgeNGrams = (str) => {
-    if (str && str.length > 3) {
-        const minGram = 3
-        const maxGram = str.length
-
-        return str.split(" ").reduce((ngrams, token) => {
-            if (token.length > minGram) {
-                for (let i = minGram; i <= maxGram && i <= token.length; ++i) {
-                    ngrams = [...ngrams, token.substr(0, i)]
-                }
-            } else {
-                ngrams = [...ngrams, token]
-            }
-            return ngrams
-        }, []).join(" ")
-    }
-
-    return str
 }
 
 // ffmpeg helper functions
@@ -289,34 +258,6 @@ exports.cropFile = async (file_path, start, end, ext) => {
 exports.wait = async (ms) => {
     await new Promise(resolve => {
         setTimeout(resolve, ms);
-    });
-}
-
-exports.checkExistsWithTimeout = async (filePath, timeout) => {
-    return new Promise(function (resolve, reject) {
-
-        var timer = setTimeout(function () {
-            if (watcher) watcher.close();
-            reject(new Error('File did not exists and was not created during the timeout.'));
-        }, timeout);
-
-        fs.access(filePath, fs.constants.R_OK, function (err) {
-            if (!err) {
-                clearTimeout(timer);
-                if (watcher) watcher.close();
-                resolve(true);
-            }
-        });
-
-        var dir = path.dirname(filePath);
-        var basename = path.basename(filePath);
-        var watcher = fs.watch(dir, function (eventType, filename) {
-            if (eventType === 'rename' && filename === basename) {
-                clearTimeout(timer);
-                if (watcher) watcher.close();
-                resolve(true);
-            }
-        });
     });
 }
 
@@ -453,7 +394,6 @@ exports.updateLoggerLevel = (new_logger_level) => {
         new_logger_level = 'info';
     }
     logger.level = new_logger_level;
-    winston.loggers.get('console').level = new_logger_level;
     logger.transports[1].level = new_logger_level;
 }
 

@@ -225,31 +225,6 @@ exports.returnAuthResponse = async function(req, res) {
   });
 }
 
-/***************************************
- * Authorization: middleware that checks the
- * JWT token for validity before allowing
- * the user to access anything.
- *
- * It also passes the user object to the next
- * middleware through res.locals
- **************************************/
-exports.ensureAuthenticatedElseError = (req, res, next) => {
-  var token = getToken(req.query);
-  if( token ) {
-    try {
-      var payload = jwt.verify(token, SERVER_SECRET);
-      // console.log('payload: ' + JSON.stringify(payload));
-      // check if user still exists in database if you'd like
-      res.locals.user = payload.user;
-      next();
-    } catch(err) {
-      res.status(401).send('Invalid Authentication');
-    }
-  } else {
-    res.status(401).send('Missing Authorization header');
-  }
-}
-
 // change password
 exports.changeUserPassword = async (user_uid, new_pass) => {
   try {
@@ -299,11 +274,6 @@ exports.adminExists = async function() {
 
 // video stuff
 
-exports.getUserVideos = async function(user_uid, type) {
-    const files = await db_api.getRecords('files', {user_uid: user_uid});
-    return type ? files.filter(file => file.isAudio === (type === 'audio')) : files;
-}
-
 exports.getUserVideo = async function(user_uid, file_uid, requireSharing = false) {
   let file = await db_api.getRecord('files', {uid: file_uid});
 
@@ -311,24 +281,6 @@ exports.getUserVideo = async function(user_uid, file_uid, requireSharing = false
   if (file && !file['sharingEnabled'] && requireSharing) file = null;
 
   return file;
-}
-
-exports.removePlaylist = async function(user_uid, playlistID) {
-  await db_api.removeRecord('playlist', {playlistID: playlistID});
-  return true;
-}
-
-exports.getUserPlaylists = async function(user_uid) {
-  return await db_api.getRecords('playlists', {user_uid: user_uid});
-}
-
-exports.getUserPlaylist = async function(user_uid, playlistID, requireSharing = false) {
-  let playlist = await db_api.getRecord('playlists', {id: playlistID});
-
-  // prevent unauthorized users from accessing the file info
-  if (requireSharing && !playlist['sharingEnabled']) playlist = null;
-
-  return playlist;
 }
 
 exports.changeSharingMode = async function(user_uid, file_uid, is_playlist, enabled) {
@@ -417,19 +369,6 @@ exports.userPermissions = async function(user_uid) {
 
   return user_permissions;
 }
-
-function getToken(queryParams) {
-  if (queryParams && queryParams.jwt) {
-    var parted = queryParams.jwt.split(' ');
-    if (parted.length === 2) {
-      return parted[1];
-    } else {
-      return null;
-    }
-  } else {
-    return null;
-  }
-};
 
 function generateUserObject(userid, username, hash, auth_method = 'internal') {
   let new_user = {

@@ -30,21 +30,10 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v4
 
-      - name: Set hash
-        id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
-      - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
-
-      - name: create-json
-        id: create-json
-        uses: jsdaniell/create-json@v1.2.2
-        with:
-          name: "version.json"
-          json: '{"type": "docker", "tag": "${{ env.TAG_NAME }}", "commit": "${{ steps.vars.outputs.sha_short }}", "date": "${{ steps.date.outputs.date }}"}'
-          dir: 'backend/'
+      - name: write version info
+        run: |
+          printf '{"type": "docker", "tag": "%s", "commit": "%s", "date": "%s"}\n' \
+            "$TAG_NAME" "$(git rev-parse --short HEAD)" "$(date +'%Y-%m-%d')" > backend/version.json
 
       - name: setup platform emulator
         uses: docker/setup-qemu-action@v3

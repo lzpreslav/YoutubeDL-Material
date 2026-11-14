@@ -13,7 +13,6 @@ ENV UID=2000
 ENV GID=2000
 ENV USER=youtube
 ENV NO_UPDATE_NOTIFIER=true
-ENV ALLOW_CONFIG_MUTATIONS=true
 ENV npm_config_cache=/root/.npm
 
 # Install package dependencies
