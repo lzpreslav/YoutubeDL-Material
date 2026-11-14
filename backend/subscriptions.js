@@ -99,6 +99,7 @@ async function getSubscriptionInfo(sub) {
 
 exports.unsubscribe = async (sub_id, deleteMode, user_uid = null) => {
     const sub = await exports.getSubscription(sub_id);
+    if (!sub) return {success: false, error: `Subscription '${sub_id}' does not exist.`};
     let basePath = null;
     if (user_uid)
         basePath = path.join(config_api.getConfigItem('ytdl_users_base_path'), user_uid, 'subscriptions');
@@ -127,7 +128,7 @@ exports.unsubscribe = async (sub_id, deleteMode, user_uid = null) => {
 
     // failed subs have no name, on unsubscribe they shouldn't error
     if (!sub.name) {
-        return;
+        return {success: true};
     }
 
     const appendedBasePath = getAppendedBasePath(sub, basePath);
@@ -136,6 +137,7 @@ exports.unsubscribe = async (sub_id, deleteMode, user_uid = null) => {
     }
 
     await db_api.removeAllRecords('archives', {sub_id: sub.id});
+    return {success: true};
 }
 
 let subscriptions_check_running = false;
@@ -422,7 +424,7 @@ async function getFilesToDownload(sub, output_jsons) {
 exports.cancelCheckSubscription = async (sub_id) => {
     const sub = await exports.getSubscription(sub_id);
     const child_process = sub_to_check_process[sub_id];
-    if (!sub['downloading'] && !child_process) {
+    if (!sub || (!sub['downloading'] && !child_process)) {
         logger.error('Failed to cancel subscription check, verify that it is still running!');
         return false;
     }
@@ -458,8 +460,10 @@ exports.getAllSubscriptions = async () => {
 }
 
 exports.getSubscription = async (subID) => {
+    const record = await db_api.getRecord('subscriptions', {id: subID});
+    if (!record) return null;
     // stringify and parse because we may override the 'downloading' property
-    const sub = JSON.parse(JSON.stringify(await db_api.getRecord('subscriptions', {id: subID})));
+    const sub = JSON.parse(JSON.stringify(record));
     // now with the download_queue, we may need to override 'downloading'
     const current_downloads = await db_api.getRecords('download_queue', {running: true, sub_id: subID}, true);
     if (!sub['downloading']) sub['downloading'] = current_downloads > 0;

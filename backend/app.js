@@ -771,7 +771,7 @@ app.post('/api/unsubscribe', optionalJwt, async (req, res) => {
     let sub_id = req.body.sub_id;
     let user_uid = req.isAuthenticated() ? req.user.uid : null;
 
-    let result_obj = subscriptions_api.unsubscribe(sub_id, deleteMode, user_uid);
+    let result_obj = await subscriptions_api.unsubscribe(sub_id, deleteMode, user_uid);
     if (result_obj.success) {
         res.send({
             success: result_obj.success
@@ -853,7 +853,7 @@ app.post('/api/checkSubscription', optionalJwt, async (req, res) => {
     let sub_id = req.body.sub_id;
     let user_uid = req.isAuthenticated() ? req.user.uid : null;
 
-    const success = subscriptions_api.getVideosForSub(sub_id, user_uid);
+    const success = await subscriptions_api.getVideosForSub(sub_id);
     res.send({
         success: success
     });
@@ -863,7 +863,7 @@ app.post('/api/cancelCheckSubscription', optionalJwt, async (req, res) => {
     let sub_id = req.body.sub_id;
     let user_uid = req.isAuthenticated() ? req.user.uid : null;
 
-    const success = subscriptions_api.cancelCheckSubscription(sub_id, user_uid);
+    const success = await subscriptions_api.cancelCheckSubscription(sub_id);
     res.send({
         success: success
     });
