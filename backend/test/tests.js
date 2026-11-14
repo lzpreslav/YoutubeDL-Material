@@ -586,6 +586,20 @@ describe('youtube-dl', async function() {
         if (fs.existsSync(binary_path)) fs.unlinkSync(binary_path);
     });
 
+    it('Downloads the binary when the version check fails and there is none', async function() {
+        this.timeout(300000);
+        const binary_path = path.join('appdata', 'bin', 'yt-dlp');
+        const getLatestUpdateVersion = youtubedl_api.getLatestUpdateVersion;
+        youtubedl_api.getLatestUpdateVersion = async () => null;
+        try {
+            fs.unlinkSync(binary_path);
+            await youtubedl_api.checkForYoutubeDLUpdate();
+            assert(fs.existsSync(binary_path));
+        } finally {
+            youtubedl_api.getLatestUpdateVersion = getLatestUpdateVersion;
+        }
+    });
+
     it('Run process', async function() {
         this.timeout(300000);
         const downloader_api = require('../downloader');

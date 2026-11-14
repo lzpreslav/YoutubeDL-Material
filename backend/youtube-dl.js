@@ -12,7 +12,7 @@ const is_windows = process.platform === 'win32';
 
 const DOWNLOADER = 'yt-dlp';
 const DOWNLOAD_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-const TAGS_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/tags';
+const LATEST_RELEASE_URL = 'https://github.com/yt-dlp/yt-dlp/releases/latest';
 
 exports.runYoutubeDL = async (url, args, customDownloadHandler = null) => {
     if (!exports.binaryExists()) await exports.checkForYoutubeDLUpdate();
@@ -86,14 +86,13 @@ exports.checkForYoutubeDLUpdate = async () => {
     const current_version = current_app_details[DOWNLOADER] ? current_app_details[DOWNLOADER]['version'] : null;
 
     const latest_version = await exports.getLatestUpdateVersion();
+    const binary_exists = fs.existsSync(output_file_path);
     // keep running the binary we have rather than redownloading blindly when the version check fails
-    if (!latest_version) return;
-
-    // if the binary does not exist, or if there is a newer version, redownload
-    if (fs.existsSync(output_file_path) && current_version === latest_version) return;
+    if (binary_exists && (!latest_version || current_version === latest_version)) return;
 
     logger.info(`Updating ${DOWNLOADER} binary to '${output_file_path}', downloading...`);
-    await exports.updateYoutubeDL(latest_version);
+    // a download of unknown version is recorded as outdated, so the next successful check replaces it
+    await exports.updateYoutubeDL(latest_version || CONSTS.OUTDATED_YOUTUBEDL_VERSION);
 }
 
 exports.updateYoutubeDL = async (new_version, custom_output_path = null) => {
@@ -119,24 +118,18 @@ exports.updateYoutubeDL = async (new_version, custom_output_path = null) => {
 }
 
 exports.getLatestUpdateVersion = async () => {
-    return new Promise(resolve => {
-        fetch(TAGS_URL, {method: 'Get'})
-        .then(async res => res.json())
-        .then(async (json) => {
-            if (!json || !json[0]) {
-                logger.error(`Failed to check ${DOWNLOADER} version for an update.`)
-                resolve(null);
-                return;
-            }
-            const latest_update_version = json[0]['name'];
-            resolve(latest_update_version);
-        })
-        .catch(err => {
-            logger.error(`Failed to check ${DOWNLOADER} version for an update.`)
-            logger.error(err);
-            resolve(null);
-        });
-    });
+    try {
+        // the latest release redirects to its tag, which unlike the GitHub API is not rate limited per IP
+        const res = await fetch(LATEST_RELEASE_URL, {method: 'HEAD', redirect: 'manual'});
+        const location = res.headers.get('location') || '';
+        const version = location.split('/releases/tag/')[1];
+        if (version) return version;
+        logger.error(`Failed to check ${DOWNLOADER} version for an update.`);
+    } catch (err) {
+        logger.error(`Failed to check ${DOWNLOADER} version for an update.`);
+        logger.error(err);
+    }
+    return null;
 }
 
 function updateDetailsJSON(new_version, output_path) {
