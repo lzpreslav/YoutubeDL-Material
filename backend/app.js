@@ -1,5 +1,15 @@
-const { v4: uuid } = require('uuid');
 const fs = require('fs-extra');
+
+// loading the logger creates the log folder, so an unwritable appdata is reported before anything else
+try {
+    fs.ensureDirSync('appdata');
+    fs.accessSync('appdata', fs.constants.W_OK);
+} catch (err) {
+    console.error(`ERROR: The appdata folder is not writable by the user the app runs as (${describeUser()}). Change its owner, or start the app as its owner.`);
+    process.exit(1);
+}
+
+const { v4: uuid } = require('uuid');
 const auth_api = require('./authentication/auth');
 const path = require('path');
 const compression = require('compression');
@@ -160,8 +170,28 @@ async function setConfigFromEnv() {
     }
 }
 
+function describeUser() {
+    return process.getuid ? `uid ${process.getuid()}, gid ${process.getgid()}` : 'the current user';
+}
+
+function checkDownloadFolders() {
+    const folder_keys = ['ytdl_audio_folder_path', 'ytdl_video_folder_path', 'ytdl_subscriptions_base_path'];
+    // nothing is written to the users folder in single-user mode
+    if (config_api.getConfigItem('ytdl_multi_user_mode')) folder_keys.push('ytdl_users_base_path');
+    for (const folder_key of folder_keys) {
+        const folder = config_api.getConfigItem(folder_key);
+        if (!folder || !fs.existsSync(folder)) continue;
+        try {
+            fs.accessSync(folder, fs.constants.W_OK);
+        } catch (err) {
+            logger.error(`The folder '${folder}' is not writable by the user the app runs as (${describeUser()}). Downloads to it will fail until its owner is changed.`);
+        }
+    }
+}
+
 async function loadConfig() {
     loadConfigValues();
+    checkDownloadFolders();
 
     // connect to DB
     if (!config_api.getConfigItem('ytdl_use_local_db'))

@@ -22,6 +22,7 @@ This is a fork of [Tzahi12345/YoutubeDL-Material](https://github.com/Tzahi12345/
 * **npm, npx and corepack are absent from the runtime image.** It only runs `node app.js`.
 * **Logs go to stdout/stderr** with a `LEVEL:` prefix and no timestamp, so a log collector can classify and stamp them. `error.log` is gone; `combined.log` still contains errors and still backs the in-app log viewer.
 * **Upgrades from versions before 4.3 are not migrated.** Start upstream 4.3 once against the old `appdata` folder first; otherwise the library starts empty.
+* **The container runs as UID/GID 2000 instead of root** and no longer has an entrypoint that switches user. Existing data has to be re-owned once, see [Custom UID/GID](#custom-uidgid). The `UID` and `GID` variables, which upstream ignored, are gone; use `user:` instead.
 * **Release zips, Heroku and Electron targets removed.** Run the container image, or build from source.
 * **The update check is removed.** The About dialog only shows the installed version.
 * **The "Kill all downloads" button and `/api/killAllDownloads` are removed.** Pause or cancel downloads from the downloads page instead.
@@ -90,13 +91,25 @@ Images are published to `ghcr.io/lzpreslav/youtubedl-material`.
 
 ### Custom UID/GID
 
-To run the app as a specific user, start the container as that user. In your `compose.yml`:
+The container has no root stage: the app runs as UID 2000 and GID 2000 from the start. Its data folders are `appdata`, `audio`, `video`, `subscriptions` and `users` under `/app`, and each one you mount has to be writable by the user the app runs as. The app logs an error at startup for any that is not.
+
+To run as a different user, for example the owner of your media folders, set it in your `compose.yml`:
 
 ```yml
 user: "YOUR_UID:YOUR_GID"
 ```
 
-The mounted folders must be writable by that user.
+Folders that Docker creates for a bind mount belong to root, so create them yourself before the first start, or change their owner afterwards.
+
+#### Upgrading from an image that ran as root
+
+Earlier images ran the app as root, so existing data belongs to root. Give it to the user the app now runs as, once:
+
+```bash
+docker compose run --rm --user 0:0 ytdl_material chown -R 2000:2000 appdata audio video subscriptions users
+```
+
+Use your own IDs in place of `2000:2000` if you set `user:`. Setting `user: "0:0"` keeps the old behaviour of running as root.
 
 ### Logging
 
