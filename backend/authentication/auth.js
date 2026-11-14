@@ -68,7 +68,7 @@ exports.initialize = function () {
 const setupRoles = async () => {
   const required_roles = {
     admin: {
-        permissions: CONSTS.AVAILABLE_PERMISSIONS
+        permissions: [...CONSTS.AVAILABLE_PERMISSIONS]
     },
     user: {
         permissions: [

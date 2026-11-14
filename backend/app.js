@@ -166,10 +166,13 @@ async function checkMigrations() {
 
     const tasks_manager_role_migration_complete = db.get('tasks_manager_role_migration_complete').value();
     if (!tasks_manager_role_migration_complete) {
-        logger.info('Checking if tasks manager role permissions exist for admin user...');
-        const success = await auth_api.changeRolePermissions('admin', 'tasks_manager', 'yes');
-        if (success) logger.info('Task manager permissions check complete!');
-        else logger.error('Failed to auto add tasks manager permissions to admin role!');
+        // a missing admin role gets created with every permission, only an existing one may lack this one
+        const admin_role = await db_api.getRecord('roles', {key: 'admin'});
+        if (admin_role && !admin_role['permissions'].includes('tasks_manager')) {
+            logger.info('Adding tasks manager permission to the admin role...');
+            const success = await auth_api.changeRolePermissions('admin', 'tasks_manager', 'yes');
+            if (!success) logger.error('Failed to auto add tasks manager permissions to admin role!');
+        }
         db.set('tasks_manager_role_migration_complete', true).write();
     }
 
