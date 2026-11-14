@@ -271,7 +271,7 @@ async function autoDeleteFiles(data) {
         logger.info(`Removing ${data['files_to_remove'].length} old files!`);
         for (let i = 0; i < data['files_to_remove'].length; i++) {
             const file_to_remove = data['files_to_remove'][i];
-            await files_api.deleteFile(file_to_remove['uid'], task_obj['options']['blacklist_files'] || (file_to_remove['sub_id'] && file_to_remove['blacklist_subscription_files']));
+            await files_api.deleteFile(file_to_remove['uid'], task_obj['options']['blacklist_files'] || (file_to_remove['sub_id'] && task_obj['options']['blacklist_subscription_files']));
         }
     }
 }
