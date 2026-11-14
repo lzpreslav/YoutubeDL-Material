@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const assert = require('assert');
 const low = require('lowdb')
 const winston = require('winston');
@@ -667,9 +666,19 @@ describe('Subscriptions', function() {
     });
     it('Unsubscribe', async function () {
         await subscriptions_api.subscribe(new_sub, null, true);
-        await subscriptions_api.unsubscribe(new_sub);
+        const result = await subscriptions_api.unsubscribe(new_sub['id']);
+        assert(result['success']);
         const sub_exists = await db_api.getRecord('subscriptions', {id: new_sub['id']});
         assert(!sub_exists);
+    });
+    it('Unsubscribe reports a subscription that does not exist', async function () {
+        const result = await subscriptions_api.unsubscribe('missing_sub_id');
+        assert(!result['success']);
+        assert(result['error']);
+    });
+    it('Check and cancel report a subscription that does not exist', async function () {
+        assert.strictEqual(await subscriptions_api.getVideosForSub('missing_sub_id'), false);
+        assert.strictEqual(await subscriptions_api.cancelCheckSubscription('missing_sub_id'), false);
     });
     it('Delete subscription file', async function () {
         

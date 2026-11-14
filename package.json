@@ -7,6 +7,7 @@
     "start": "ng serve",
     "build": "ng build --configuration production",
     "prebuild": "node src/postbuild.mjs",
+    "lint": "eslint src backend",
     "generate": "openapi --input ./\"Public API v1.yaml\" --output ./src/api-types --exportCore false --exportServices false --exportModels true",
     "i18n-source": "ng extract-i18n --output-path=src/assets/i18n --out-file=messages.en.xlf"
   },
@@ -46,11 +47,12 @@
     "@angular/cli": "^22.2.6",
     "@angular/compiler-cli": "^22.2.5",
     "@angular/language-service": "^22.2.5",
+    "@eslint/js": "^10.0.1",
     "@types/file-saver": "^2.0.1",
-    "@typescript-eslint/eslint-plugin": "^4.29.0",
-    "@typescript-eslint/parser": "^4.29.0",
-    "eslint": "^7.32.0",
-    "openapi-typescript-codegen": "^0.23.0"
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0",
+    "openapi-typescript-codegen": "^0.23.0",
+    "typescript-eslint": "^8.72.2"
   },
   "overrides": {
     "@videogular/ngx-videogular": {
