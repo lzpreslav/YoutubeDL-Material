@@ -643,7 +643,7 @@ exports.generateArgs = async (url, type, options, user_uid = null, simulated = f
     // filter out incompatible args
     downloadConfig = filterArgs(downloadConfig, is_audio);
 
-    if (!simulated) logger.verbose(`yt-dlp args being used: ${downloadConfig.join(',')}`);
+    if (!simulated) logger.verbose(`yt-dlp args being used: ${utils.redactArgs(downloadConfig)}`);
     return downloadConfig;
 }
 

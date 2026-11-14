@@ -1043,6 +1043,11 @@ describe('Archive', async function() {
 });
 
 describe('Utils', async function() {
+    it('Masks secret values in logged args', async function() {
+        const redacted = utils.redactArgs(['-o', 'out', '--username', 'me', '--password', 'hunter2', '--video-password=hunter3', '-f', 'best']);
+        assert.strictEqual(redacted, '-o,out,--username,me,--password,***,--video-password=***,-f,best');
+    });
+
     it('Strip properties', async function() {
         const test_obj = {test1: 'test1', test2: 'test2', test3: 'test3'};
         const stripped_obj = utils.stripPropertiesFromObject(test_obj, ['test1', 'test3']);
