@@ -14,7 +14,6 @@ backend/public
 backend/subscriptions
 backend/test/sample_mp4.mp4
 backend/video
-chart
 chrome-extension
 db
 docker-compose.yml
